@@ -367,21 +367,21 @@
         <div class="field-row">
           <div class="field">
             <label>인보이스 번호</label>
-            <input id="invNo" placeholder="IV-00483" value="IV-00483">
+            <input id="invNo" placeholder="IV-00000">
           </div>
           <div class="field">
             <label>고객명 (Bill To)</label>
-            <input id="billTo" placeholder="LEE JAEIK" value="LEE JAEIK">
+            <input id="billTo" placeholder="고객 영문 이름">
           </div>
         </div>
         <div class="field-row">
           <div class="field">
             <label>발행일</label>
-            <input id="invDate" placeholder="2026-05-28" value="2026-05-28">
+            <input id="invDate" placeholder="YYYY-MM-DD">
           </div>
           <div class="field">
             <label>납부 기한 (Due Date)</label>
-            <input id="dueDate" placeholder="2026-06-27" value="2026-06-27">
+            <input id="dueDate" placeholder="YYYY-MM-DD">
           </div>
         </div>
 
@@ -540,17 +540,6 @@ function guessKey(text){
   return null;
 }
 
-/* 초기 샘플: 첨부된 인보이스 IV-00483 그대로 */
-const SAMPLE = [
-  { key:"service_fee", work:"NEW", tier:"SILVER", en:"U1 SERVICE FEE FOR NEW MM2H SILVER (LEE JAEIK)", who:"LEE JAEIK", amt:"32,000.00", note:"RM 40,000 × 80%" },
-  { key:"dependant_processing", en:"DEPENDANT PROCESSING FEE", who:"JUNG SE JUNG", amt:"2,500.00", note:"" },
-  { key:"dependant_processing", en:"DEPENDENT PROCESSING FEE", who:"LEE GI HYUN", amt:"2,500.00", note:"" },
-  { key:"visa_fee", en:"VISA FEE", who:"JUNG SE JUNG", amt:"2,650.00", note:"RM 530 × 5년" },
-  { key:"visa_fee", en:"VISA FEE", who:"LEE GI HYUN", amt:"2,650.00", note:"RM 530 × 5년" },
-  { key:"insurance_fee", en:"INSURANCE FEE", who:"JUNG SE JUNG / LEE GI HYUN", amt:"433.08", note:"" },
-  { key:"medical_checkup", en:"MEDICAL CHECK UP", who:"JUNG SE JUNG / LEE GI HYUN", amt:"300.00", note:"" }
-];
-
 let items = [];
 
 function optionsHTML(selectedKey){
@@ -563,7 +552,9 @@ function renderItems(){
   const box = document.getElementById('items');
   box.innerHTML = items.map((it, i) => {
     const isOther = it.key === 'other';
-    const isUnknown = it.key === null;
+    const isBlank = it.key === null && !it.en && !it.who && !it.amt;
+    const isUnknown = it.key === null && !isBlank;  // 내용은 있는데 항목 미선택
+    const needPick = it.key === null;               // 드롭다운에 안내문 표시
     const isService = it.key === 'service_fee';
     const workOpts = Object.keys(WORK_LABELS).map(k =>
       `<option value="${k}" ${it.work===k?'selected':''}>${WORK_LABELS[k]} (${k})</option>`).join('');
@@ -573,7 +564,7 @@ function renderItems(){
     <div class="item ${isUnknown?'unknown':''}">
       <div class="item-top">
         <select onchange="setKey(${i}, this.value)">
-          ${isUnknown ? '<option value="" selected disabled>― 항목을 선택하세요 ―</option>' : ''}
+          ${needPick ? '<option value="" selected disabled>― 항목을 선택하세요 ―</option>' : ''}
           ${optionsHTML(it.key)}
         </select>
         <button class="del-btn" onclick="delItem(${i})" title="삭제">×</button>
@@ -596,9 +587,9 @@ function renderItems(){
         </div>
       </div>` : ''}
       <div class="item-grid">
-        <input placeholder="영문 항목명 (인보이스 그대로)" value="${esc(it.en)}" onchange="setField(${i},'en',this.value)">
-        <input placeholder="대상자" value="${esc(it.who)}" onchange="setField(${i},'who',this.value)">
-        <input placeholder="금액 (RM)" value="${esc(it.amt)}" onchange="setField(${i},'amt',this.value)">
+        <input placeholder="영문 항목명 (예: VISA FEE FOR ...)" value="${esc(it.en)}" onchange="setField(${i},'en',this.value)">
+        <input placeholder="대상자 (예: HONG GIL DONG)" value="${esc(it.who)}" onchange="setField(${i},'who',this.value)">
+        <input placeholder="금액 (예: 2,650.00)" value="${esc(it.amt)}" onchange="setField(${i},'amt',this.value)">
       </div>
       ${isOther ? `<input style="margin-top:8px;font-size:12.5px;padding:7px 9px;width:100%;" placeholder="이 항목의 국문 설명을 직접 입력하세요" value="${esc(it.customDesc||'')}" onchange="setField(${i},'customDesc',this.value)">` : ''}
       <div class="item-note">⚠ 인식되지 않은 항목입니다. 위 목록에서 알맞은 항목을 선택해 주세요.</div>
@@ -623,11 +614,12 @@ function delItem(i){ items.splice(i,1); renderItems(); }
 
 function resetAll(){
   if(!confirm('모든 입력을 초기화할까요?')) return;
-  items = SAMPLE.map(s => ({...s}));
-  document.getElementById('invNo').value='';
-  document.getElementById('billTo').value='';
-  document.getElementById('invDate').value='';
-  document.getElementById('dueDate').value='';
+  items = [{ key:null, en:'', who:'', amt:'', note:'' }];
+  ['invNo','billTo','invDate','dueDate'].forEach(id => document.getElementById(id).value = '');
+  const st = document.getElementById('dzStatus');
+  if(st) st.className = 'dz-status';
+  const pi = document.getElementById('pdfInput');
+  if(pi) pi.value = '';
   renderItems();
 }
 
@@ -909,7 +901,7 @@ function applyParsed(r){
 }
 
 // init
-items = SAMPLE.map(s => ({...s}));
+items = [{ key:null, en:'', who:'', amt:'', note:'' }];
 ['invNo','billTo','invDate','dueDate','bankName','acctName','acctMYR','acctUSD','swift']
   .forEach(id => document.getElementById(id).addEventListener('input', renderDoc));
 renderItems();
