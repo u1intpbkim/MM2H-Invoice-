@@ -61,11 +61,14 @@
     font-size: 21px; font-weight: 700; letter-spacing: -.3px;
   }
   .logo-text p { font-size: 12px; color: var(--ink-faint); letter-spacing: .5px; }
-  .tagline {
-    text-align: right; font-size: 12.5px; color: var(--ink-soft);
-    max-width: 320px; line-height: 1.5;
+  .lang-toggle { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .lang-btn {
+    padding: 8px 16px; border: none; background: #fff; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-faint);
+    transition: all .15s;
   }
-  .tagline strong { color: var(--brand-deep); }
+  .lang-btn:hover { background: var(--paper-warm); }
+  .lang-btn.active { background: var(--brand); color: #fff; }
 
   /* Layout */
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
@@ -235,7 +238,12 @@
   .item-desc { font-size: 10.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.5; }
   .item-en { font-size: 9.5px; color: var(--ink-faint); margin-top: 1px; font-style: italic; }
 
-  .total-block { margin-top: 14px; }
+  .doc-warn {
+    margin: 14px 0; padding: 11px 14px;
+    background: var(--warn-bg); border: 1px solid var(--warn);
+    border-radius: 6px; font-size: 11.5px; color: var(--warn); line-height: 1.6;
+  }
+  .row-unknown td { background: var(--warn-bg) !important; }
   .total-line {
     display: flex; justify-content: space-between; align-items: baseline;
     padding: 6px 16px; font-size: 12px; color: var(--ink-soft);
@@ -331,17 +339,17 @@
 <body>
 <div class="wrap">
 
-  <header>
+  <header class="no-print">
     <div class="logo-row">
       <div class="logo-mark">U1</div>
       <div class="logo-text">
-        <h1>국문 인보이스 안내문 생성기</h1>
+        <h1 data-i18n="appTitle">국문 인보이스 안내문 생성기</h1>
         <p>U1 INTERNATIONAL (MM2H) SDN. BHD.</p>
       </div>
     </div>
-    <div class="tagline">
-      영문 인보이스는 <strong>그대로 유지</strong>하고,<br>
-      한국 고객님께 드릴 <strong>국문 안내문</strong>을 자동 생성합니다.
+    <div class="lang-toggle">
+      <button id="langKO" class="lang-btn active" onclick="setLang('ko')">한국어</button>
+      <button id="langEN" class="lang-btn" onclick="setLang('en')">English</button>
     </div>
   </header>
 
@@ -351,85 +359,85 @@
     <div class="panel no-print">
       <div class="panel-head">
         <span class="step">1</span>
-        <h2>인보이스 정보 입력</h2>
-        <span class="hint">영문 인보이스 보고 그대로 입력</span>
+        <h2 data-i18n="panelInput">인보이스 정보 입력</h2>
+        <span class="hint" data-i18n="panelInputHint">영문 인보이스 보고 그대로 입력</span>
       </div>
       <div class="panel-body">
 
         <div class="dropzone" id="dropzone" onclick="document.getElementById('pdfInput').click()">
           <div class="dz-icon">📎</div>
-          <div class="dz-title">여기에 인보이스를 업로드하여 자동 입력</div>
-          <div class="dz-sub">영문 인보이스 PDF를 끌어다 놓거나 클릭하여 선택하세요</div>
+          <div class="dz-title" data-i18n="dzTitle">여기에 인보이스를 업로드하여 자동 입력</div>
+          <div class="dz-sub" data-i18n="dzSub">영문 인보이스 PDF를 끌어다 놓거나 클릭하여 선택하세요</div>
           <input type="file" id="pdfInput" accept="application/pdf" onchange="handleFile(this.files[0])">
         </div>
         <div class="dz-status" id="dzStatus"></div>
 
-        <div class="info-strip">
+        <div class="info-strip" data-i18n-html="infoStrip">
           항목을 선택하면 <b>국문 설명이 자동</b>으로 붙습니다. 목록에 없는 특수 항목은
           <b>"기타 (직접 입력)"</b>을 골라 설명을 직접 작성하세요.
         </div>
 
-        <div class="sub-label">기본 정보</div>
+        <div class="sub-label" data-i18n="secBasic">기본 정보</div>
         <div class="field-row">
           <div class="field">
-            <label>인보이스 번호</label>
+            <label data-i18n="lblInvNo">인보이스 번호</label>
             <input id="invNo" placeholder="IV-00000">
           </div>
           <div class="field">
-            <label>고객명 (Bill To)</label>
-            <input id="billTo" placeholder="고객 영문 이름">
+            <label data-i18n="lblBillTo">고객명 (Bill To)</label>
+            <input id="billTo" data-ph="phBillTo" placeholder="고객 영문 이름">
           </div>
         </div>
         <div class="field-row">
           <div class="field">
-            <label>발행일</label>
+            <label data-i18n="lblDate">발행일</label>
             <input id="invDate" placeholder="YYYY-MM-DD">
           </div>
           <div class="field">
-            <label>납부 기한 (Due Date)</label>
+            <label data-i18n="lblDue">납부 기한 (Due Date)</label>
             <input id="dueDate" placeholder="YYYY-MM-DD">
           </div>
         </div>
 
-        <div class="sub-label">청구 항목</div>
+        <div class="sub-label" data-i18n="secItems">청구 항목</div>
         <div id="items"></div>
-        <button class="add-btn" onclick="addItem()">＋ 항목 추가</button>
+        <button class="add-btn" onclick="addItem()" data-i18n="btnAddItem">＋ 항목 추가</button>
 
-        <div class="sub-label">세금 (선택)</div>
+        <div class="sub-label" data-i18n="secTax">세금 (선택)</div>
         <div class="field">
-          <label>서비스세 SST (없으면 0 또는 비움)</label>
-          <input id="sstAmt" placeholder="예: 132.00  (없으면 비워두세요)" oninput="renderDoc()">
+          <label data-i18n="lblSST">서비스세 SST (없으면 0 또는 비움)</label>
+          <input id="sstAmt" data-ph="phSST" placeholder="예: 132.00  (없으면 비워두세요)" oninput="renderDoc()">
         </div>
 
-        <div class="sub-label">입금 정보</div>
+        <div class="sub-label" data-i18n="secPay">입금 정보</div>
         <div class="field-row">
           <div class="field">
-            <label>은행</label>
+            <label data-i18n="lblBank">은행</label>
             <input id="bankName" value="AMBANK ISLAMIC BERHAD">
           </div>
           <div class="field">
-            <label>예금주</label>
+            <label data-i18n="lblAcctName">예금주</label>
             <input id="acctName" value="U1 International (MM2H) Sdn. Bhd.">
           </div>
         </div>
         <div class="field-row">
           <div class="field">
-            <label>계좌번호 (MYR)</label>
+            <label data-i18n="lblAcctMYR">계좌번호 (MYR)</label>
             <input id="acctMYR" value="888 1064 4177 58">
           </div>
           <div class="field">
-            <label>계좌번호 (USD)</label>
+            <label data-i18n="lblAcctUSD">계좌번호 (USD)</label>
             <input id="acctUSD" value="888 3000 7700 98">
           </div>
         </div>
         <div class="field">
-          <label>SWIFT 코드</label>
+          <label data-i18n="lblSwift">SWIFT 코드</label>
           <input id="swift" value="AISLMYKL">
         </div>
 
         <div class="btn-row">
-          <button class="btn btn-ghost" onclick="resetAll()">초기화</button>
-          <button class="btn btn-primary" onclick="window.print()">📄 PDF로 저장 / 인쇄</button>
+          <button class="btn btn-ghost" onclick="resetAll()" data-i18n="btnReset">초기화</button>
+          <button class="btn btn-primary" onclick="window.print()" data-i18n="btnPrint">📄 PDF로 저장 / 인쇄</button>
         </div>
 
       </div>
@@ -439,8 +447,8 @@
     <div class="panel" id="previewPanel">
       <div class="panel-head no-print">
         <span class="step">2</span>
-        <h2>국문 안내문 미리보기</h2>
-        <span class="hint">입력하면 실시간 반영</span>
+        <h2 data-i18n="panelPreview">국문 안내문 미리보기</h2>
+        <span class="hint" data-i18n="panelPreviewHint">입력하면 실시간 반영</span>
       </div>
       <div class="panel-body">
         <div class="preview-scroll">
@@ -473,6 +481,7 @@ const GLOSSARY = [
     ko: "U1 서비스 수수료 (PVIP 프리미엄 비자 대행)",
     en: "U1 Service Fee - PVIP",
     desc: "프리미엄 비자(PVIP) 신청 대행 비용입니다. 고액 예치 기반의 프리미엄 거주 비자 프로그램입니다.",
+    descEn: "Service fee for handling a PVIP (Premium Visa Programme) application — a premium residency visa based on a high-value deposit.",
     match: ["pvip"]
   },
   {
@@ -480,6 +489,7 @@ const GLOSSARY = [
     ko: "U1 서비스 수수료 (체류기간 연장 · TEBP)",
     en: "Service Fee for TEBP",
     desc: "TEBP(체류 허가/기간 연장) 처리를 U1이 대행하는 서비스 비용입니다.",
+    descEn: "U1's service fee for processing TEBP (extension of stay / pass endorsement).",
     match: ["service fee for tebp", "fee for tebp", "tebp"]
   },
   {
@@ -487,6 +497,7 @@ const GLOSSARY = [
     ko: "U1 서비스 수수료 (유학 허가 · PTS)",
     en: "Service Fee for Permission to Study (PTS)",
     desc: "PTS(유학·수학 허가) 신청을 U1이 대행하는 서비스 비용입니다.",
+    descEn: "U1's service fee for handling a PTS (Permission to Study) application.",
     match: ["permission to study", "pts"]
   },
   {
@@ -494,6 +505,7 @@ const GLOSSARY = [
     ko: "비자 취소 대행 수수료",
     en: "Visa Cancellation Service Fee",
     desc: "기존 비자(본인 또는 동반가족)의 취소 절차를 U1이 대행하는 비용입니다.",
+    descEn: "Service fee for handling the cancellation of an existing visa (principal or dependant).",
     match: ["visa cancellation", "dependent visa cancellation", "dependant visa cancellation"]
   },
   {
@@ -501,6 +513,7 @@ const GLOSSARY = [
     ko: "정기예금(FD) 인출 대행 수수료",
     en: "Fixed Deposit Withdrawal Service Fee",
     desc: "비자 요건으로 예치했던 정기예금(Fixed Deposit)의 인출 절차를 U1이 대행하는 비용입니다.",
+    descEn: "Service fee for handling the withdrawal of the Fixed Deposit placed as a visa requirement.",
     match: ["fixed deposit withdrawal", "fd withdrawal"]
   },
   {
@@ -508,6 +521,7 @@ const GLOSSARY = [
     ko: "은행 업무 지원 수수료",
     en: "Bank Assist Service Fee",
     desc: "현지 은행 계좌 개설·거래 등 은행 관련 업무를 U1이 지원하는 비용입니다.",
+    descEn: "Service fee for assisting with local bank matters such as account opening and transactions.",
     match: ["bank assist"]
   },
   {
@@ -515,6 +529,7 @@ const GLOSSARY = [
     ko: "참가비 (Participation Fee)",
     en: "Participation Fee",
     desc: "비자 프로그램 참가에 따라 발생하는 비용입니다. 프로그램 종류에 따라 산정 기준이 다릅니다.",
+    descEn: "Fee payable for participation in the visa programme. The basis varies by programme type.",
     match: ["participation fee"]
   },
   {
@@ -522,6 +537,7 @@ const GLOSSARY = [
     ko: "동반가족 신청 처리 수수료",
     en: "Dependant Processing Fee",
     desc: "주신청자와 함께 비자를 신청하는 동반가족(배우자·자녀·부모 등) 1인당 발생하는 신청 처리 비용입니다.",
+    descEn: "Per-dependant processing fee for family members (spouse, children, parents) applying alongside the principal.",
     match: ["dependant processing", "dependent processing"]
   },
   {
@@ -529,6 +545,7 @@ const GLOSSARY = [
     ko: "비자 발급비 (정부 납부)",
     en: "Visa Fee",
     desc: "말레이시아 정부에 납부하는 비자 발급 공식 수수료입니다. 비자 유효기간(연 단위)에 따라 합산되어 청구됩니다.",
+    descEn: "Official government visa issuance fee, charged per year of visa validity.",
     match: ["visa fee"]
   },
   {
@@ -536,6 +553,7 @@ const GLOSSARY = [
     ko: "의료보험료",
     en: "Insurance Fee",
     desc: "MM2H 비자 요건으로 가입이 필수인 현지 의료보험의 보험료입니다. 신청인별로 산정됩니다.",
+    descEn: "Premium for the local medical insurance required as an MM2H visa condition, calculated per applicant.",
     match: ["insurance fee", "insurance"]
   },
   {
@@ -543,6 +561,7 @@ const GLOSSARY = [
     ko: "건강검진 비용",
     en: "Medical Check Up",
     desc: "비자 신청 요건인 지정 병원 건강검진 비용입니다. 신청인 1인당 발생합니다.",
+    descEn: "Cost of the required medical check-up at a designated clinic, per applicant.",
     match: ["medical check", "medical checkup", "medical check up"]
   },
   {
@@ -550,6 +569,7 @@ const GLOSSARY = [
     ko: "여권 사진 인쇄",
     en: "Passport Photo Printing",
     desc: "비자 서류용 여권 규격 사진 인쇄 비용입니다.",
+    descEn: "Cost of printing passport-size photos for visa documents.",
     match: ["passport photo", "photo printing"]
   },
   {
@@ -557,6 +577,7 @@ const GLOSSARY = [
     ko: "보증금 (예치금)",
     en: "Security Deposit",
     desc: "비자 처리를 위해 예치하는 보증금입니다. 조건에 따라 추후 환급될 수 있습니다.",
+    descEn: "Deposit placed to process the visa. May be refundable under certain conditions.",
     match: ["security deposit", "deposit"]
   },
   {
@@ -564,6 +585,7 @@ const GLOSSARY = [
     ko: "인지세 (정부 납부)",
     en: "Stamp Duty",
     desc: "관련 서류·계약에 부과되는 말레이시아 정부 인지세입니다.",
+    descEn: "Malaysian government stamp duty levied on related documents or agreements.",
     match: ["stamp duty", "stamp"]
   },
   {
@@ -571,6 +593,7 @@ const GLOSSARY = [
     ko: "비자 부착(엔도스먼트) 수수료",
     en: "Visa Endorsement Fee",
     desc: "여권에 비자를 부착·등록하는 절차에 발생하는 수수료입니다.",
+    descEn: "Fee for endorsing/affixing the visa into the passport.",
     match: ["endorsement", "endorse"]
   },
   {
@@ -578,6 +601,7 @@ const GLOSSARY = [
     ko: "U1 서비스 수수료 (일반)",
     en: "U1 Service Fee (General)",
     desc: "U1이 제공하는 서비스에 대한 수수료입니다. 세부 업무 내용은 영문 인보이스 항목명을 참고해 주세요.",
+    descEn: "Fee for a service provided by U1. Please refer to the English invoice line for the specific work performed.",
     match: ["u1 service fee", "service fee", "u1 service"]
   },
   {
@@ -585,13 +609,162 @@ const GLOSSARY = [
     ko: "기타 (직접 입력)",
     en: "Other",
     desc: "",
+    descEn: "",
     match: []
   }
 ];
 
 /* U1 MM2H 서비스 수수료 세부 구분 라벨 (service_mm2h 전용) */
 const WORK_LABELS = { NEW: "신규 신청", REFRESH: "갱신" };
+const WORK_LABELS_EN = { NEW: "New", REFRESH: "Renewal" };
 const TIER_LABELS = { PLATINUM: "플래티넘", GOLD: "골드", SILVER: "실버", SEZ: "SEZ" };
+const TIER_LABELS_EN = { PLATINUM: "Platinum", GOLD: "Gold", SILVER: "Silver", SEZ: "SEZ" };
+
+/* ============================================================
+   언어 사전 (i18n) — UI 텍스트
+   ============================================================ */
+let LANG = 'ko';
+const I18N = {
+  ko: {
+    appTitle: "인보이스 안내문 생성기",
+    panelInput: "인보이스 정보 입력",
+    panelInputHint: "영문 인보이스 보고 그대로 입력",
+    dzTitle: "여기에 인보이스를 업로드하여 자동 입력",
+    dzSub: "영문 인보이스 PDF를 끌어다 놓거나 클릭하여 선택하세요",
+    infoStrip: '항목을 선택하면 <b>국문 설명이 자동</b>으로 붙습니다. 목록에 없는 특수 항목은 <b>"기타 (직접 입력)"</b>을 골라 설명을 직접 작성하세요.',
+    secBasic: "기본 정보",
+    lblInvNo: "인보이스 번호",
+    lblBillTo: "고객명 (Bill To)",
+    phBillTo: "고객 영문 이름",
+    lblDate: "발행일",
+    lblDue: "납부 기한 (Due Date)",
+    secItems: "청구 항목",
+    btnAddItem: "＋ 항목 추가",
+    secTax: "세금 (선택)",
+    lblSST: "서비스세 SST (없으면 0 또는 비움)",
+    phSST: "예: 132.00  (없으면 비워두세요)",
+    secPay: "입금 정보",
+    lblBank: "은행", lblAcctName: "예금주", lblAcctMYR: "계좌번호 (MYR)",
+    lblAcctUSD: "계좌번호 (USD)", lblSwift: "SWIFT 코드",
+    btnReset: "초기화", btnPrint: "📄 PDF로 저장 / 인쇄",
+    panelPreview: "안내문 미리보기", panelPreviewHint: "입력하면 실시간 반영",
+    // line item ui
+    selectPrompt: "― 항목을 선택하세요 ―",
+    phItemEn: "영문 항목명 (예: VISA FEE FOR ...)",
+    phWho: "대상자 (예: HONG GIL DONG)",
+    phAmt: "금액 (예: 2,650.00)",
+    phCustom: "이 항목의 국문 설명을 직접 입력하세요",
+    workLbl: "업무 구분", tierLbl: "등급 (Tier)",
+    workPick: "구분 선택", tierPick: "등급 선택",
+    itemUnknown: "⚠ 인식되지 않은 항목입니다. 위 목록에서 알맞은 항목을 선택해 주세요.",
+    // document (output)
+    docTitle: "청구 안내서", docSub: "INVOICE GUIDE (KR)",
+    mInvNo: "인보이스 번호", mBillTo: "고객명", mDate: "발행일", mDue: "납부 기한",
+    greet: (name) => `<b>${name}</b> 님, 안녕하십니까. U1 International을 이용해 주셔서 감사합니다.<br>본 안내서는 함께 보내드린 <b>영문 인보이스(공식 청구서)</b>의 내용을 한국어로 풀어 설명드리기 위한 참고 자료입니다. 실제 납부 및 회계 처리는 <b>영문 인보이스를 기준</b>으로 진행됩니다.`,
+    secItemGuide: "청구 항목 안내",
+    thItem: "항목 및 설명", thAmt: "금액",
+    lblTarget: "대상", lblCalc: "산정", lblSource: "원문",
+    subtotal: "소계 (Subtotal)", serviceTax: "서비스세 (Service Tax 8%)", totalLbl: "합계 (TOTAL)",
+    payTitle: "💳 입금 안내",
+    pBank: "은행", pAcctName: "예금주", pMYR: "계좌 (MYR)", pUSD: "계좌 (USD)", pSwift: "SWIFT",
+    foot1: "본 안내서는 고객 편의를 위한 <b>국문 참고 자료</b>이며, 법적·회계상 효력을 갖는 공식 청구서는 함께 송부된 영문 인보이스입니다.",
+    foot2: "항목·금액에 대한 문의는 담당자에게 연락 주시면 안내해 드리겠습니다.",
+    footDisc: "이 문서는 자동 생성되었습니다. · This is a Korean-language guide accompanying the official English invoice.",
+    emptyHint: "항목을 입력하면<br>안내문이 여기 표시됩니다.",
+    custName: "고객"
+  },
+  en: {
+    appTitle: "Invoice Guide Generator",
+    panelInput: "Enter Invoice Details",
+    panelInputHint: "Copy directly from the English invoice",
+    dzTitle: "Upload an invoice here to auto-fill",
+    dzSub: "Drag & drop the English invoice PDF, or click to select",
+    infoStrip: 'Selecting an item attaches its <b>explanation automatically</b>. For items not in the list, choose <b>"Other (custom)"</b> and write the description yourself.',
+    secBasic: "Basic Information",
+    lblInvNo: "Invoice No.",
+    lblBillTo: "Customer (Bill To)",
+    phBillTo: "Customer name",
+    lblDate: "Issue Date",
+    lblDue: "Due Date",
+    secItems: "Line Items",
+    btnAddItem: "＋ Add Item",
+    secTax: "Tax (optional)",
+    lblSST: "Service Tax / SST (leave blank if none)",
+    phSST: "e.g. 132.00  (leave blank if none)",
+    secPay: "Payment Details",
+    lblBank: "Bank", lblAcctName: "Account Name", lblAcctMYR: "Account No. (MYR)",
+    lblAcctUSD: "Account No. (USD)", lblSwift: "SWIFT Code",
+    btnReset: "Reset", btnPrint: "📄 Save as PDF / Print",
+    panelPreview: "Guide Preview", panelPreviewHint: "Updates as you type",
+    selectPrompt: "― Select an item ―",
+    phItemEn: "Invoice line text (e.g. VISA FEE FOR ...)",
+    phWho: "Person (e.g. HONG GIL DONG)",
+    phAmt: "Amount (e.g. 2,650.00)",
+    phCustom: "Write the description for this item",
+    workLbl: "Type", tierLbl: "Tier",
+    workPick: "Select type", tierPick: "Select tier",
+    itemUnknown: "⚠ This item was not recognized. Please pick the right item above.",
+    docTitle: "Invoice Guide", docSub: "INVOICE GUIDE (EN)",
+    mInvNo: "Invoice No.", mBillTo: "Customer", mDate: "Issue Date", mDue: "Due Date",
+    greet: (name) => `Dear <b>${name}</b>, thank you for choosing U1 International.<br>This guide is a reference that explains, in plain language, the contents of the <b>English invoice (the official bill)</b> sent alongside it. Actual payment and accounting are processed <b>based on the English invoice</b>.`,
+    secItemGuide: "Line Item Guide",
+    thItem: "Item & Description", thAmt: "Amount",
+    lblTarget: "For", lblCalc: "Basis", lblSource: "Source",
+    subtotal: "Subtotal", serviceTax: "Service Tax (8%)", totalLbl: "TOTAL",
+    payTitle: "💳 Payment Information",
+    pBank: "Bank", pAcctName: "Account Name", pMYR: "Acct (MYR)", pUSD: "Acct (USD)", pSwift: "SWIFT",
+    foot1: "This guide is a <b>reference document</b> for the customer's convenience. The official bill with legal and accounting effect is the English invoice sent alongside it.",
+    foot2: "For questions about items or amounts, please contact your representative.",
+    footDisc: "This document was generated automatically.",
+    emptyHint: "Enter items and<br>the guide will appear here.",
+    custName: "Customer"
+  }
+};
+function t(key){ return I18N[LANG][key]; }
+
+/* ============================================================
+   출력 문서(미리보기·PDF)는 UI 언어와 무관하게 항상 국문.
+   현지 직원이 영문 UI로 작업해도 결과물은 한국 고객용 국문 안내문.
+   ============================================================ */
+const DOC_KO = {
+  docTitle: "청구 안내서", docSub: "INVOICE GUIDE (KR)",
+  mInvNo: "인보이스 번호", mBillTo: "고객명", mDate: "발행일", mDue: "납부 기한",
+  greet: (name) => `<b>${name}</b> 님, 안녕하십니까. U1 International을 이용해 주셔서 감사합니다.<br>본 안내서는 함께 보내드린 <b>영문 인보이스(공식 청구서)</b>의 내용을 한국어로 풀어 설명드리기 위한 참고 자료입니다. 실제 납부 및 회계 처리는 <b>영문 인보이스를 기준</b>으로 진행됩니다.`,
+  secItemGuide: "청구 항목 안내",
+  thItem: "항목 및 설명", thAmt: "금액",
+  lblTarget: "대상", lblCalc: "산정", lblSource: "원문",
+  subtotal: "소계 (Subtotal)", serviceTax: "서비스세 (Service Tax 8%)", totalLbl: "합계 (TOTAL)",
+  payTitle: "💳 입금 안내",
+  pBank: "은행", pAcctName: "예금주", pMYR: "계좌 (MYR)", pUSD: "계좌 (USD)", pSwift: "SWIFT",
+  foot1: "본 안내서는 고객 편의를 위한 <b>국문 참고 자료</b>이며, 법적·회계상 효력을 갖는 공식 청구서는 함께 송부된 영문 인보이스입니다.",
+  foot2: "항목·금액에 대한 문의는 담당자에게 연락 주시면 안내해 드리겠습니다.",
+  footDisc: "이 문서는 자동 생성되었습니다. · This is a Korean-language guide accompanying the official English invoice.",
+  unknownName: "⚠ 확인불가 항목",
+  unknownDesc: "이 항목은 자동으로 확인되지 않았습니다. 담당 직원이 항목을 직접 확인·기재해야 합니다.",
+  emptyHint: "항목을 입력하면<br>국문 안내문이 여기 표시됩니다."
+};
+function d(key){ return DOC_KO[key]; }
+
+function setLang(lang){
+  LANG = lang;
+  document.documentElement.lang = lang;
+  document.getElementById('langKO').classList.toggle('active', lang==='ko');
+  document.getElementById('langEN').classList.toggle('active', lang==='en');
+  // static UI text
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if(I18N[lang][k] !== undefined) el.textContent = I18N[lang][k];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const k = el.getAttribute('data-i18n-html');
+    if(I18N[lang][k] !== undefined) el.innerHTML = I18N[lang][k];
+  });
+  document.querySelectorAll('[data-ph]').forEach(el => {
+    const k = el.getAttribute('data-ph');
+    if(I18N[lang][k] !== undefined) el.placeholder = I18N[lang][k];
+  });
+  renderItems();   // re-render dynamic parts (dropdowns, document)
+}
 
 /* 영문 Description 으로 사전 항목 자동 추정 */
 function guessKey(text){
@@ -606,9 +779,10 @@ function guessKey(text){
 let items = [];
 
 function optionsHTML(selectedKey){
-  return GLOSSARY.map(g =>
-    `<option value="${g.key}" ${g.key===selectedKey?'selected':''}>${g.ko}</option>`
-  ).join('');
+  return GLOSSARY.map(g => {
+    const name = LANG==='en' ? (g.en || g.ko) : g.ko;
+    return `<option value="${g.key}" ${g.key===selectedKey?'selected':''}>${name}</option>`;
+  }).join('');
 }
 
 function renderItems(){
@@ -619,43 +793,45 @@ function renderItems(){
     const isUnknown = it.key === null && !isBlank;  // 내용은 있는데 항목 미선택
     const needPick = it.key === null;               // 드롭다운에 안내문 표시
     const isService = it.key === 'service_mm2h';
-    const workOpts = Object.keys(WORK_LABELS).map(k =>
-      `<option value="${k}" ${it.work===k?'selected':''}>${WORK_LABELS[k]} (${k})</option>`).join('');
-    const tierOpts = Object.keys(TIER_LABELS).map(k =>
-      `<option value="${k}" ${it.tier===k?'selected':''}>${TIER_LABELS[k]} (${k})</option>`).join('');
+    const WL = LANG==='en' ? WORK_LABELS_EN : WORK_LABELS;
+    const TL = LANG==='en' ? TIER_LABELS_EN : TIER_LABELS;
+    const workOpts = Object.keys(WL).map(k =>
+      `<option value="${k}" ${it.work===k?'selected':''}>${WL[k]} (${k})</option>`).join('');
+    const tierOpts = Object.keys(TL).map(k =>
+      `<option value="${k}" ${it.tier===k?'selected':''}>${TL[k]} (${k})</option>`).join('');
     return `
     <div class="item ${isUnknown?'unknown':''}">
       <div class="item-top">
         <select onchange="setKey(${i}, this.value)">
-          ${needPick ? '<option value="" selected disabled>― 항목을 선택하세요 ―</option>' : ''}
+          ${needPick ? `<option value="" selected disabled>${t('selectPrompt')}</option>` : ''}
           ${optionsHTML(it.key)}
         </select>
-        <button class="del-btn" onclick="delItem(${i})" title="삭제">×</button>
+        <button class="del-btn" onclick="delItem(${i})" title="×">×</button>
       </div>
       ${isService ? `
       <div class="svc-grid">
         <div class="svc-field">
-          <span class="svc-lbl">업무 구분</span>
+          <span class="svc-lbl">${t('workLbl')}</span>
           <select onchange="setField(${i},'work',this.value)">
-            <option value="" ${!it.work?'selected':''} disabled>구분 선택</option>
+            <option value="" ${!it.work?'selected':''} disabled>${t('workPick')}</option>
             ${workOpts}
           </select>
         </div>
         <div class="svc-field">
-          <span class="svc-lbl">등급 (Tier)</span>
+          <span class="svc-lbl">${t('tierLbl')}</span>
           <select onchange="setField(${i},'tier',this.value)">
-            <option value="" ${!it.tier?'selected':''} disabled>등급 선택</option>
+            <option value="" ${!it.tier?'selected':''} disabled>${t('tierPick')}</option>
             ${tierOpts}
           </select>
         </div>
       </div>` : ''}
       <div class="item-grid">
-        <input placeholder="영문 항목명 (예: VISA FEE FOR ...)" value="${esc(it.en)}" onchange="setField(${i},'en',this.value)">
-        <input placeholder="대상자 (예: HONG GIL DONG)" value="${esc(it.who)}" onchange="setField(${i},'who',this.value)">
-        <input placeholder="금액 (예: 2,650.00)" value="${esc(it.amt)}" onchange="setField(${i},'amt',this.value)">
+        <input placeholder="${t('phItemEn')}" value="${esc(it.en)}" onchange="setField(${i},'en',this.value)">
+        <input placeholder="${t('phWho')}" value="${esc(it.who)}" onchange="setField(${i},'who',this.value)">
+        <input placeholder="${t('phAmt')}" value="${esc(it.amt)}" onchange="setField(${i},'amt',this.value)">
       </div>
-      ${isOther ? `<input style="margin-top:8px;font-size:12.5px;padding:7px 9px;width:100%;" placeholder="이 항목의 국문 설명을 직접 입력하세요" value="${esc(it.customDesc||'')}" onchange="setField(${i},'customDesc',this.value)">` : ''}
-      <div class="item-note">⚠ 인식되지 않은 항목입니다. 위 목록에서 알맞은 항목을 선택해 주세요.</div>
+      ${isOther ? `<input style="margin-top:8px;font-size:12.5px;padding:7px 9px;width:100%;" placeholder="${t('phCustom')}" value="${esc(it.customDesc||'')}" onchange="setField(${i},'customDesc',this.value)">` : ''}
+      <div class="item-note">${t('itemUnknown')}</div>
     </div>`;
   }).join('');
   renderDoc();
@@ -691,31 +867,49 @@ function fmt(n){ return n.toLocaleString('en-US',{minimumFractionDigits:2, maxim
 
 function renderDoc(){
   const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-  const valid = items.filter(it => it.key && it.key!=='' );
+  // 출력 대상: 항목이 선택됐거나(valid), 내용은 있는데 미선택(확인불가)인 것
+  const shown = items.filter(it => (it.key && it.key!=='') || it.en || it.who || it.amt);
   const subtotal = items.reduce((s,it)=> s + parseAmt(it.amt), 0);
   const sst = parseAmt(get('sstAmt'));
   const total = subtotal + sst;
+  let hasUnknown = false;
 
-  const rows = valid.map((it,idx) => {
+  const rows = shown.map((it,idx) => {
+    const recognized = it.key && it.key !== '';
+    // ── 확인불가 항목 (내용은 있으나 항목 미선택) ──
+    if(!recognized){
+      hasUnknown = true;
+      return `
+      <tr class="row-unknown">
+        <td style="width:24px;color:var(--warn)">${idx+1}</td>
+        <td>
+          <div class="item-name" style="color:var(--warn)">${d('unknownName')}</div>
+          ${it.who ? `<div class="item-desc">· ${d('lblTarget')}: ${esc(it.who)}</div>`:''}
+          <div class="item-desc" style="color:var(--warn)">${d('unknownDesc')}</div>
+          <div class="item-en">${d('lblSource')}: ${esc(it.en||'(미입력)')}</div>
+        </td>
+        <td class="r" style="white-space:nowrap;font-weight:600">${it.amt? 'RM '+fmt(parseAmt(it.amt)) : '-'}</td>
+      </tr>`;
+    }
+    // ── 정상 항목 (항상 국문 출력) ──
     const g = GLOSSARY.find(x=>x.key===it.key) || {};
-    let koName = g.ko || '';
-    let desc = it.key==='other' ? (it.customDesc||'') : g.desc;
+    let name = g.ko || '';
+    let desc = it.key==='other' ? (it.customDesc||'') : (g.desc||'');
     if(it.key === 'service_mm2h'){
-      const work = WORK_LABELS[it.work] || '';   // 신규 신청 / 갱신
-      const tierEn = it.tier || '';              // SILVER 등 (영문 등급 표기 유지)
-      // 예) U1 서비스 수수료 (MM2H SILVER 신규 신청 대행)
+      const work = WORK_LABELS[it.work] || '';
+      const tierEn = it.tier || '';   // 등급은 영문 표기 유지(인보이스 대조 용이)
       const parts = ['MM2H', tierEn, work, '대행'].filter(Boolean).join(' ');
-      koName = `U1 서비스 수수료 (${parts})`;
+      name = `U1 서비스 수수료 (${parts})`;
     }
     return `
     <tr>
       <td style="width:24px;color:var(--ink-faint)">${idx+1}</td>
       <td>
-        <div class="item-name">${esc(koName)}</div>
-        ${it.who ? `<div class="item-desc">· 대상: ${esc(it.who)}</div>`:''}
-        ${it.note ? `<div class="item-desc">· 산정: ${esc(it.note)}</div>`:''}
+        <div class="item-name">${esc(name)}</div>
+        ${it.who ? `<div class="item-desc">· ${d('lblTarget')}: ${esc(it.who)}</div>`:''}
+        ${it.note ? `<div class="item-desc">· ${d('lblCalc')}: ${esc(it.note)}</div>`:''}
         <div class="item-desc">${esc(desc)}</div>
-        <div class="item-en">원문: ${esc(it.en||g.en||'')}</div>
+        <div class="item-en">${d('lblSource')}: ${esc(it.en||g.en||'')}</div>
       </td>
       <td class="r" style="white-space:nowrap;font-weight:600">RM ${fmt(parseAmt(it.amt))}</td>
     </tr>`;
@@ -723,10 +917,15 @@ function renderDoc(){
 
   const doc = document.getElementById('doc');
 
-  if(valid.length === 0){
-    doc.innerHTML = `<div class="empty-hint"><div class="ic">📋</div>항목을 입력하면<br>국문 안내문이 여기 표시됩니다.</div>`;
+  if(shown.length === 0){
+    doc.innerHTML = `<div class="empty-hint"><div class="ic">📋</div>${d('emptyHint')}</div>`;
     return;
   }
+
+  const warnBanner = hasUnknown ? `
+    <div class="doc-warn">
+      ⚠ <b>확인불가 항목이 포함되어 있습니다.</b> 발송 전 담당 직원이 해당 항목을 영문 인보이스와 대조하여 직접 확인·수정해 주세요.
+    </div>` : '';
 
   doc.innerHTML = `
     <div class="doc-head">
@@ -739,54 +938,52 @@ function renderDoc(){
         </div>
       </div>
       <div class="doc-title">
-        <div class="big">청구 안내서</div>
-        <div class="sub">INVOICE GUIDE (KR)</div>
+        <div class="big">${d('docTitle')}</div>
+        <div class="sub">${d('docSub')}</div>
       </div>
     </div>
 
+    ${warnBanner}
+
     <div class="doc-meta">
-      <div><span class="k">인보이스 번호</span><span class="v">${esc(get('invNo'))||'-'}</span></div>
-      <div><span class="k">고객명</span><span class="v">${esc(get('billTo'))||'-'}</span></div>
-      <div><span class="k">발행일</span><span class="v">${esc(get('invDate'))||'-'}</span></div>
-      <div><span class="k">납부 기한</span><span class="v">${esc(get('dueDate'))||'-'}</span></div>
+      <div><span class="k">${d('mInvNo')}</span><span class="v">${esc(get('invNo'))||'-'}</span></div>
+      <div><span class="k">${d('mBillTo')}</span><span class="v">${esc(get('billTo'))||'-'}</span></div>
+      <div><span class="k">${d('mDate')}</span><span class="v">${esc(get('invDate'))||'-'}</span></div>
+      <div><span class="k">${d('mDue')}</span><span class="v">${esc(get('dueDate'))||'-'}</span></div>
     </div>
 
-    <p class="greet">
-      <b>${esc(get('billTo'))||'고객'}</b> 님, 안녕하십니까. U1 International을 이용해 주셔서 감사합니다.<br>
-      본 안내서는 함께 보내드린 <b>영문 인보이스(공식 청구서)</b>의 내용을 한국어로 풀어 설명드리기 위한 참고 자료입니다.
-      실제 납부 및 회계 처리는 <b>영문 인보이스를 기준</b>으로 진행됩니다.
-    </p>
+    <p class="greet">${d('greet')(esc(get('billTo'))||'고객')}</p>
 
-    <div class="doc-section-title">청구 항목 안내</div>
+    <div class="doc-section-title">${d('secItemGuide')}</div>
     <table class="doc-table">
-      <thead><tr><th></th><th>항목 및 설명</th><th class="r">금액</th></tr></thead>
+      <thead><tr><th></th><th>${d('thItem')}</th><th class="r">${d('thAmt')}</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
 
     <div class="total-block">
-      <div class="total-line"><span>소계 (Subtotal)</span><span>RM ${fmt(subtotal)}</span></div>
-      ${sst>0 ? `<div class="total-line"><span>서비스세 (Service Tax 8%)</span><span>RM ${fmt(sst)}</span></div>` : ''}
+      <div class="total-line"><span>${d('subtotal')}</span><span>RM ${fmt(subtotal)}</span></div>
+      ${sst>0 ? `<div class="total-line"><span>${d('serviceTax')}</span><span>RM ${fmt(sst)}</span></div>` : ''}
       <div class="total-row">
-        <span class="lbl">합계 (TOTAL)</span>
+        <span class="lbl">${d('totalLbl')}</span>
         <span class="amt">RM ${fmt(total)}</span>
       </div>
     </div>
 
     <div class="pay-box">
-      <div class="pt">💳 입금 안내</div>
+      <div class="pt">${d('payTitle')}</div>
       <div class="pay-grid">
-        <span class="pk">은행</span><span class="pv">${esc(get('bankName'))}</span>
-        <span class="pk">예금주</span><span class="pv">${esc(get('acctName'))}</span>
-        <span class="pk">계좌 (MYR)</span><span class="pv">${esc(get('acctMYR'))}</span>
-        <span class="pk">계좌 (USD)</span><span class="pv">${esc(get('acctUSD'))}</span>
-        <span class="pk">SWIFT</span><span class="pv">${esc(get('swift'))}</span>
+        <span class="pk">${d('pBank')}</span><span class="pv">${esc(get('bankName'))}</span>
+        <span class="pk">${d('pAcctName')}</span><span class="pv">${esc(get('acctName'))}</span>
+        <span class="pk">${d('pMYR')}</span><span class="pv">${esc(get('acctMYR'))}</span>
+        <span class="pk">${d('pUSD')}</span><span class="pv">${esc(get('acctUSD'))}</span>
+        <span class="pk">${d('pSwift')}</span><span class="pv">${esc(get('swift'))}</span>
       </div>
     </div>
 
     <div class="doc-foot">
-      · 본 안내서는 고객 편의를 위한 <b>국문 참고 자료</b>이며, 법적·회계상 효력을 갖는 공식 청구서는 함께 송부된 영문 인보이스입니다.<br>
-      · 항목·금액에 대한 문의는 담당자에게 연락 주시면 안내해 드리겠습니다.<br>
-      <div class="disc">이 문서는 자동 생성되었습니다. · This is a Korean-language guide accompanying the official English invoice.</div>
+      · ${d('foot1')}<br>
+      · ${d('foot2')}<br>
+      <div class="disc">${d('footDisc')}</div>
     </div>
   `;
 }
@@ -902,29 +1099,47 @@ function parseInvoice(lines){
   const mSST = joined.match(/Service\s*Tax[^\n]*?(\d{1,3}(?:,\d{3})*\.\d{2})/i);
   if(mSST) out.meta.sst = mSST[1];
 
-  // 청구 항목: 사전 키워드가 들어간 줄을 찾고 금액 추출
-  // 금액 패턴: 1,234.56 형태 중 가장 마지막 큰 값을 Amt로 추정
+  // 청구 항목 파싱
+  // 인보이스 항목은 여러 줄로 쪼개질 수 있음(예: "U1 Service Fee:" + "PVIP FOR ...").
+  // 금액(소수점 .00)이 있는 줄을 "항목 경계"로 보고, 그 줄까지를 하나의 블록으로 묶는다.
   const amtRe = /\d{1,3}(?:,\d{3})*\.\d{2}/g;
-  lines.forEach(line => {
-    const key = guessKey(line);
-    if(!key) return;
-    // 같은 줄 또는 보조 정보에서 금액 추출
-    const amts = line.match(amtRe);
-    let amt = '';
-    if(amts && amts.length){
-      // U/Price와 Amt가 같이 있는 경우가 많음 → 큰 값을 Amt로
-      amt = amts.map(a=>parseFloat(a.replace(/,/g,'')))
-                .reduce((m,v)=> v>=m.v?{v,raw:null}:m, {v:-1}).v;
-      // 원본 포맷 유지 위해 다시 포맷
-      amt = amt>=0 ? amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
-    }
-    // 대상자(영문 대문자 이름) 추출 시도
-    const who = extractName(line);
-    const item = { key, en: cleanEn(line), who, amt, note:'' };
+  const isMetaLine = l => /subtotal|service tax|^total|grand total|tax id|reg no|page \d|computer generated|prepared by|payment term|due date|^date|swift|account no|bank address|^bank:|remit payment/i.test(l);
 
-    // U1 서비스 수수료: 업무구분(NEW/REFRESH) + Tier 자동 인식
+  let block = [];
+  const blocks = [];
+  lines.forEach(line => {
+    if(isMetaLine(line)) { block = []; return; }   // 합계/세금 줄은 항목 아님
+    block.push(line);
+    if(amtRe.test(line)) {            // 금액이 있으면 블록 종료
+      blocks.push(block);
+      block = [];
+    }
+    amtRe.lastIndex = 0;             // 전역 정규식 인덱스 리셋
+  });
+
+  blocks.forEach(blockLines => {
+    const blockText = blockLines.join(' ');
+    const allAmts = (blockText.match(amtRe) || []).map(a=>parseFloat(a.replace(/,/g,'')));
+    if(!allAmts.length) return;   // 금액 없는 블록은 항목 아님
+
+    // 블록 전체에서 가장 구체적인 항목을 한 번만 인식
+    const key = guessKey(blockText);
+
+    // 금액: 블록 내 모든 금액 중 가장 큰 값을 Amt로 추정
+    const max = Math.max(...allAmts);
+    const amt = max.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const who = extractName(blockText);
+
+    // 항목명 텍스트가 거의 없는(숫자만 있는) 블록은 무시
+    const cleaned = cleanEn(blockText);
+    if(!key && cleaned.replace(/[^a-zA-Z]/g,'').length < 4) return;
+
+    // key가 null이면 "확인불가 항목"으로 남김 (임의 추정 금지)
+    const item = { key: key || null, en: cleaned, who, amt, note:'' };
+
+    // MM2H 서비스 수수료: 업무구분(NEW/REFRESH) + Tier 자동 인식
     if(key === 'service_mm2h'){
-      const up = line.toUpperCase();
+      const up = blockText.toUpperCase();
       if(/\bREFRESH\b|\bRENEW/.test(up)) item.work = 'REFRESH';
       else if(/\bNEW\b/.test(up)) item.work = 'NEW';
       if(/\bPLATINUM\b/.test(up)) item.tier = 'PLATINUM';
@@ -976,9 +1191,9 @@ function applyParsed(r){
 
 // init
 items = [{ key:null, en:'', who:'', amt:'', note:'' }];
-['invNo','billTo','invDate','dueDate','bankName','acctName','acctMYR','acctUSD','swift']
+['invNo','billTo','invDate','dueDate','sstAmt','bankName','acctName','acctMYR','acctUSD','swift']
   .forEach(id => document.getElementById(id).addEventListener('input', renderDoc));
-renderItems();
+setLang('ko');   // 기본 한국어 + 최초 렌더
 </script>
 </body>
 </html>
