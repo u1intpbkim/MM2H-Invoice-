@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U1 International — 국문 인보이스 안내문 생성기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --ink: #1a1d24;
+    --ink-soft: #4a4f5c;
+    --ink-faint: #8a8f9c;
+    --paper: #fbfaf7;
+    --paper-warm: #f4f1ea;
+    --line: #e3ded3;
+    --brand: #b8341f;
+    --brand-deep: #8a2415;
+    --accent: #1c3a5e;
+    --gold: #c8a25a;
+    --ok: #2d6a4f;
+    --warn: #b56a00;
+    --warn-bg: #fdf3e0;
+    --shadow: 0 1px 2px rgba(26,29,36,.04), 0 8px 28px rgba(26,29,36,.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans KR', sans-serif;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(184,52,31,.04), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(28,58,94,.04), transparent 40%),
+      var(--paper-warm);
+    color: var(--ink);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* Header */
+  header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+    padding-bottom: 20px; margin-bottom: 28px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .logo-row { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 46px; height: 46px; flex-shrink: 0;
+    background: var(--brand); color: #fff;
+    display: grid; place-items: center;
+    font-family: 'Gowun Batang', serif; font-weight: 700; font-size: 26px;
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+  }
+  .logo-text h1 {
+    font-family: 'Gowun Batang', serif;
+    font-size: 21px; font-weight: 700; letter-spacing: -.3px;
+  }
+  .logo-text p { font-size: 12px; color: var(--ink-faint); letter-spacing: .5px; }
+  .tagline {
+    text-align: right; font-size: 12.5px; color: var(--ink-soft);
+    max-width: 320px; line-height: 1.5;
+  }
+  .tagline strong { color: var(--brand-deep); }
+
+  /* Layout */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .panel-head {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, rgba(244,241,234,.5), transparent);
+  }
+  .panel-head .step {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--ink); color: #fff;
+    display: grid; place-items: center; font-size: 13px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .panel-head h2 { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+  .panel-head .hint { font-size: 11.5px; color: var(--ink-faint); margin-left: auto; }
+  .panel-body { padding: 22px; }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--ink-soft); margin-bottom: 5px; letter-spacing: .2px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 11px;
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
+    background: #fff; border: 1px solid var(--line); border-radius: 5px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(28,58,94,.08);
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .sub-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .8px;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin: 22px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  /* Line items */
+  .item {
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 13px; margin-bottom: 11px;
+    background: linear-gradient(180deg, #fff, var(--paper));
+    position: relative;
+  }
+  .item-top { display: flex; gap: 10px; align-items: flex-start; }
+  .item-top select { flex: 1; }
+  .item-grid { display: grid; grid-template-columns: 1.4fr .7fr .9fr; gap: 8px; margin-top: 9px; }
+  .item-grid input { font-size: 12.5px; padding: 7px 9px; }
+  .svc-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px;
+    padding: 9px; background: rgba(200,162,90,.08);
+    border: 1px solid rgba(200,162,90,.3); border-radius: 5px;
+  }
+  .svc-field { display: flex; flex-direction: column; gap: 3px; }
+  .svc-lbl { font-size: 10px; font-weight: 700; color: var(--brand-deep); letter-spacing: .3px; }
+  .svc-field select { font-size: 12.5px; padding: 6px 8px; }
+  .del-btn {
+    width: 30px; height: 30px; flex-shrink: 0;
+    border: 1px solid var(--line); background: #fff;
+    border-radius: 5px; cursor: pointer; color: var(--ink-faint);
+    font-size: 16px; line-height: 1; transition: all .15s;
+  }
+  .del-btn:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .item.unknown { border-color: var(--warn); background: var(--warn-bg); }
+  .item-note {
+    font-size: 11px; color: var(--warn); margin-top: 7px;
+    display: none; align-items: center; gap: 5px;
+  }
+  .item.unknown .item-note { display: flex; }
+
+  .add-btn {
+    width: 100%; padding: 11px;
+    border: 1.5px dashed var(--line); background: transparent;
+    border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 500; color: var(--ink-soft);
+    transition: all .15s;
+  }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(28,58,94,.03); }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+  .btn {
+    flex: 1; padding: 13px; border: none; border-radius: 6px;
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .18s; letter-spacing: .3px;
+  }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 4px 14px rgba(184,52,31,.25); }
+  .btn-primary:hover { background: var(--brand-deep); transform: translateY(-1px); }
+  .btn-ghost { background: #fff; color: var(--ink-soft); border: 1px solid var(--line); flex: 0 0 auto; padding: 13px 18px; }
+  .btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* Preview */
+  #previewPanel .panel-body { padding: 0; background: var(--paper-warm); }
+  .preview-scroll { max-height: 760px; overflow-y: auto; padding: 22px; }
+  .preview-scroll::-webkit-scrollbar { width: 8px; }
+  .preview-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  /* The actual document (also used for PDF) */
+  .doc {
+    background: #fff; padding: 38px 40px;
+    box-shadow: var(--shadow);
+    font-size: 13px; color: var(--ink);
+  }
+  .doc-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 16px; border-bottom: 2px solid var(--brand);
+  }
+  .doc-head .co { display: flex; align-items: center; gap: 11px; }
+  .doc-head .co-mark {
+    width: 40px; height: 40px; background: var(--brand); color: #fff;
+    display: grid; place-items: center; font-family: 'Gowun Batang', serif;
+    font-weight: 700; font-size: 23px; border-radius: 3px;
+  }
+  .doc-head .co h3 { font-family: 'Gowun Batang', serif; font-size: 16px; }
+  .doc-head .co p { font-size: 10.5px; color: var(--ink-faint); }
+  .doc-title { text-align: right; }
+  .doc-title .big {
+    font-family: 'Gowun Batang', serif; font-size: 22px; font-weight: 700;
+    color: var(--brand-deep); letter-spacing: 1px;
+  }
+  .doc-title .sub { font-size: 10.5px; color: var(--ink-faint); letter-spacing: 2px; }
+
+  .doc-meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px;
+    margin: 16px 0; padding: 13px 16px;
+    background: var(--paper-warm); border-radius: 5px; font-size: 12px;
+  }
+  .doc-meta .k { color: var(--ink-faint); }
+  .doc-meta .v { font-weight: 600; text-align: right; }
+  .doc-meta div { display: flex; justify-content: space-between; }
+
+  .greet { font-size: 12.5px; line-height: 1.75; color: var(--ink-soft); margin: 16px 2px; }
+  .greet b { color: var(--ink); }
+
+  .doc-section-title {
+    font-family: 'Gowun Batang', serif; font-size: 14px; font-weight: 700;
+    margin: 22px 0 10px; padding-left: 9px;
+    border-left: 3px solid var(--gold);
+  }
+
+  table.doc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.doc-table th {
+    background: var(--ink); color: #fff; font-weight: 500;
+    padding: 8px 10px; text-align: left; font-size: 11px; letter-spacing: .3px;
+  }
+  table.doc-table th.r, table.doc-table td.r { text-align: right; }
+  table.doc-table td {
+    padding: 9px 10px; border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.doc-table tr:nth-child(even) td { background: var(--paper); }
+  .item-name { font-weight: 600; color: var(--ink); }
+  .item-desc { font-size: 10.5px; color: var(--ink-soft); margin-top: 2px; line-height: 1.5; }
+  .item-en { font-size: 9.5px; color: var(--ink-faint); margin-top: 1px; font-style: italic; }
+
+  .total-row {
+    display: flex; justify-content: flex-end; align-items: baseline;
+    gap: 18px; margin-top: 14px; padding: 13px 16px;
+    background: var(--brand); color: #fff; border-radius: 5px;
+  }
+  .total-row .lbl { font-size: 13px; letter-spacing: 1px; }
+  .total-row .amt { font-family: 'Gowun Batang', serif; font-size: 21px; font-weight: 700; }
+
+  .pay-box {
+    margin-top: 20px; padding: 15px 17px;
+    background: var(--paper-warm); border-radius: 6px;
+    border: 1px solid var(--line);
+  }
+  .pay-box .pt {
+    font-family: 'Gowun Batang', serif; font-weight: 700; font-size: 13px;
+    margin-bottom: 9px; color: var(--accent);
+  }
+  .pay-grid { display: grid; grid-template-columns: 90px 1fr; gap: 5px 12px; font-size: 11.5px; }
+  .pay-grid .pk { color: var(--ink-faint); }
+  .pay-grid .pv { font-weight: 600; }
+
+  .doc-foot {
+    margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 10.5px; color: var(--ink-faint); line-height: 1.7;
+  }
+  .doc-foot .disc { margin-top: 8px; font-size: 9.5px; }
+
+  .empty-hint {
+    text-align: center; padding: 60px 20px; color: var(--ink-faint); font-size: 13px;
+  }
+  .empty-hint .ic { font-size: 38px; opacity: .4; margin-bottom: 12px; }
+
+  .info-strip {
+    background: rgba(28,58,94,.05); border: 1px solid rgba(28,58,94,.15);
+    border-radius: 6px; padding: 12px 15px; font-size: 12px;
+    color: var(--accent); margin-bottom: 20px; line-height: 1.6;
+  }
+  .info-strip b { font-weight: 700; }
+
+  /* PDF Dropzone */
+  .dropzone {
+    border: 2px dashed var(--brand);
+    border-radius: 8px;
+    padding: 22px 18px;
+    text-align: center;
+    cursor: pointer;
+    background:
+      linear-gradient(180deg, rgba(184,52,31,.04), rgba(184,52,31,.01));
+    transition: all .18s;
+    margin-bottom: 22px;
+  }
+  .dropzone:hover { background: rgba(184,52,31,.07); border-color: var(--brand-deep); }
+  .dropzone.dragover {
+    background: rgba(184,52,31,.12); border-color: var(--brand-deep);
+    transform: scale(1.01);
+  }
+  .dropzone .dz-icon { font-size: 30px; margin-bottom: 8px; }
+  .dropzone .dz-title { font-size: 14px; font-weight: 700; color: var(--brand-deep); margin-bottom: 4px; }
+  .dropzone .dz-sub { font-size: 11.5px; color: var(--ink-faint); }
+  .dropzone input[type=file] { display: none; }
+  .dz-status {
+    margin-bottom: 18px; padding: 11px 14px; border-radius: 6px;
+    font-size: 12.5px; line-height: 1.6; display: none;
+  }
+  .dz-status.show { display: block; }
+  .dz-status.loading { background: var(--warn-bg); color: var(--warn); border: 1px solid rgba(181,106,0,.25); }
+  .dz-status.success { background: rgba(45,106,79,.08); color: var(--ok); border: 1px solid rgba(45,106,79,.25); }
+  .dz-status.error { background: rgba(184,52,31,.07); color: var(--brand-deep); border: 1px solid rgba(184,52,31,.25); }
+  .dz-status b { font-weight: 700; }
+  .dz-spin {
+    display: inline-block; width: 13px; height: 13px;
+    border: 2px solid rgba(181,106,0,.3); border-top-color: var(--warn);
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .preview-scroll { max-height: none; overflow: visible; padding: 0; }
+    .doc { box-shadow: none; padding: 0; }
+    #previewPanel, #previewPanel .panel-body { border: none; box-shadow: none; background: #fff; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-mark">U1</div>
+      <div class="logo-text">
+        <h1>국문 인보이스 안내문 생성기</h1>
+        <p>U1 INTERNATIONAL (MM2H) SDN. BHD.</p>
+      </div>
+    </div>
+    <div class="tagline">
+      영문 인보이스는 <strong>그대로 유지</strong>하고,<br>
+      한국 고객님께 드릴 <strong>국문 안내문</strong>을 자동 생성합니다.
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- INPUT -->
+    <div class="panel no-print">
+      <div class="panel-head">
+        <span class="step">1</span>
+        <h2>인보이스 정보 입력</h2>
+        <span class="hint">영문 인보이스 보고 그대로 입력</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('pdfInput').click()">
+          <div class="dz-icon">📎</div>
+          <div class="dz-title">여기에 인보이스를 업로드하여 자동 입력</div>
+          <div class="dz-sub">영문 인보이스 PDF를 끌어다 놓거나 클릭하여 선택하세요</div>
+          <input type="file" id="pdfInput" accept="application/pdf" onchange="handleFile(this.files[0])">
+        </div>
+        <div class="dz-status" id="dzStatus"></div>
+
+        <div class="info-strip">
+          항목을 선택하면 <b>국문 설명이 자동</b>으로 붙습니다. 목록에 없는 특수 항목은
+          <b>"기타 (직접 입력)"</b>을 골라 설명을 직접 작성하세요.
+        </div>
+
+        <div class="sub-label">기본 정보</div>
+        <div class="field-row">
+          <div class="field">
+            <label>인보이스 번호</label>
+            <input id="invNo" placeholder="IV-00483" value="IV-00483">
+          </div>
+          <div class="field">
+            <label>고객명 (Bill To)</label>
+            <input id="billTo" placeholder="LEE JAEIK" value="LEE JAEIK">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>발행일</label>
+            <input id="invDate" placeholder="2026-05-28" value="2026-05-28">
+          </div>
+          <div class="field">
+            <label>납부 기한 (Due Date)</label>
+            <input id="dueDate" placeholder="2026-06-27" value="2026-06-27">
+          </div>
+        </div>
+
+        <div class="sub-label">청구 항목</div>
+        <div id="items"></div>
+        <button class="add-btn" onclick="addItem()">＋ 항목 추가</button>
+
+        <div class="sub-label">입금 정보</div>
+        <div class="field-row">
+          <div class="field">
+            <label>은행</label>
+            <input id="bankName" value="AMBANK ISLAMIC BERHAD">
+          </div>
+          <div class="field">
+            <label>예금주</label>
+            <input id="acctName" value="U1 International (MM2H) Sdn. Bhd.">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>계좌번호 (MYR)</label>
+            <input id="acctMYR" value="888 1064 4177 58">
+          </div>
+          <div class="field">
+            <label>계좌번호 (USD)</label>
+            <input id="acctUSD" value="888 3000 7700 98">
+          </div>
+        </div>
+        <div class="field">
+          <label>SWIFT 코드</label>
+          <input id="swift" value="AISLMYKL">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="resetAll()">초기화</button>
+          <button class="btn btn-primary" onclick="window.print()">📄 PDF로 저장 / 인쇄</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="panel" id="previewPanel">
+      <div class="panel-head no-print">
+        <span class="step">2</span>
+        <h2>국문 안내문 미리보기</h2>
+        <span class="hint">입력하면 실시간 반영</span>
+      </div>
+      <div class="panel-body">
+        <div class="preview-scroll">
+          <div class="doc" id="doc"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   용어 사전 (GLOSSARY)
+   영문 인보이스 항목 → 국문 명칭 + 쉬운 설명
+   match: 영문 Description 에 포함되면 자동 인식되는 키워드(소문자)
+   ============================================================ */
+const GLOSSARY = [
+  {
+    key: "service_fee",
+    ko: "U1 서비스 수수료 (MM2H 신규 신청 대행)",
+    en: "U1 Service Fee for New MM2H",
+    desc: "MM2H(말레이시아 마이 세컨드 홈) 비자 신규 신청의 전 과정을 U1이 대행하는 서비스 비용입니다. 서류 준비부터 정부 제출·승인까지 포함됩니다.",
+    match: ["service fee", "u1 service"]
+  },
+  {
+    key: "dependant_processing",
+    ko: "동반가족 신청 처리 수수료",
+    en: "Dependant Processing Fee",
+    desc: "주신청자와 함께 비자를 신청하는 동반가족(배우자·자녀·부모 등) 1인당 발생하는 신청 처리 비용입니다.",
+    match: ["dependant processing", "dependent processing"]
+  },
+  {
+    key: "visa_fee",
+    ko: "비자 발급비 (정부 납부)",
+    en: "Visa Fee",
+    desc: "말레이시아 정부에 납부하는 비자 발급 공식 수수료입니다. 비자 유효기간(연 단위)에 따라 합산되어 청구됩니다.",
+    match: ["visa fee"]
+  },
+  {
+    key: "insurance_fee",
+    ko: "의료보험료",
+    en: "Insurance Fee",
+    desc: "MM2H 비자 요건으로 가입이 필수인 현지 의료보험의 보험료입니다. 신청인별로 산정됩니다.",
+    match: ["insurance fee", "insurance"]
+  },
+  {
+    key: "medical_checkup",
+    ko: "건강검진 비용",
+    en: "Medical Check Up",
+    desc: "비자 신청 요건인 지정 병원 건강검진 비용입니다. 신청인 1인당 발생합니다.",
+    match: ["medical check", "medical checkup", "medical check up"]
+  },
+  {
+    key: "security_deposit",
+    ko: "보증금 (예치금)",
+    en: "Security Deposit",
+    desc: "비자 처리를 위해 예치하는 보증금입니다. 조건에 따라 추후 환급될 수 있습니다.",
+    match: ["security deposit", "deposit"]
+  },
+  {
+    key: "stamp_duty",
+    ko: "인지세 (정부 납부)",
+    en: "Stamp Duty",
+    desc: "관련 서류·계약에 부과되는 말레이시아 정부 인지세입니다.",
+    match: ["stamp duty", "stamp"]
+  },
+  {
+    key: "agent_fee",
+    ko: "대행 수수료",
+    en: "Agent Fee",
+    desc: "지정 업무를 대리·처리하는 데 발생하는 대행 수수료입니다.",
+    match: ["agent fee"]
+  },
+  {
+    key: "endorsement",
+    ko: "비자 부착(엔도스먼트) 수수료",
+    en: "Visa Endorsement Fee",
+    desc: "여권에 비자를 부착·등록하는 절차에 발생하는 수수료입니다.",
+    match: ["endorsement", "endorse"]
+  },
+  {
+    key: "sst",
+    ko: "서비스세 (SST)",
+    en: "Sales & Service Tax",
+    desc: "말레이시아 서비스세(SST)입니다. 과세 대상 서비스 금액에 부과됩니다.",
+    match: ["sst", "service tax"]
+  },
+  {
+    key: "other",
+    ko: "기타 (직접 입력)",
+    en: "Other",
+    desc: "",
+    match: []
+  }
+];
+
+/* U1 서비스 수수료 세부 구분 라벨 */
+const WORK_LABELS = { NEW: "신규 신청", REFRESH: "갱신" };
+const TIER_LABELS = { PLATINUM: "플래티넘", GOLD: "골드", SILVER: "실버", SEZ: "SEZ" };
+
+/* 영문 Description 으로 사전 항목 자동 추정 */
+function guessKey(text){
+  const t = (text||"").toLowerCase();
+  for(const g of GLOSSARY){
+    if(g.key === "other") continue;
+    if(g.match.some(m => t.includes(m))) return g.key;
+  }
+  return null;
+}
+
+/* 초기 샘플: 첨부된 인보이스 IV-00483 그대로 */
+const SAMPLE = [
+  { key:"service_fee", work:"NEW", tier:"SILVER", en:"U1 SERVICE FEE FOR NEW MM2H SILVER (LEE JAEIK)", who:"LEE JAEIK", amt:"32,000.00", note:"RM 40,000 × 80%" },
+  { key:"dependant_processing", en:"DEPENDANT PROCESSING FEE", who:"JUNG SE JUNG", amt:"2,500.00", note:"" },
+  { key:"dependant_processing", en:"DEPENDENT PROCESSING FEE", who:"LEE GI HYUN", amt:"2,500.00", note:"" },
+  { key:"visa_fee", en:"VISA FEE", who:"JUNG SE JUNG", amt:"2,650.00", note:"RM 530 × 5년" },
+  { key:"visa_fee", en:"VISA FEE", who:"LEE GI HYUN", amt:"2,650.00", note:"RM 530 × 5년" },
+  { key:"insurance_fee", en:"INSURANCE FEE", who:"JUNG SE JUNG / LEE GI HYUN", amt:"433.08", note:"" },
+  { key:"medical_checkup", en:"MEDICAL CHECK UP", who:"JUNG SE JUNG / LEE GI HYUN", amt:"300.00", note:"" }
+];
+
+let items = [];
+
+function optionsHTML(selectedKey){
+  return GLOSSARY.map(g =>
+    `<option value="${g.key}" ${g.key===selectedKey?'selected':''}>${g.ko}</option>`
+  ).join('');
+}
+
+function renderItems(){
+  const box = document.getElementById('items');
+  box.innerHTML = items.map((it, i) => {
+    const isOther = it.key === 'other';
+    const isUnknown = it.key === null;
+    const isService = it.key === 'service_fee';
+    const workOpts = Object.keys(WORK_LABELS).map(k =>
+      `<option value="${k}" ${it.work===k?'selected':''}>${WORK_LABELS[k]} (${k})</option>`).join('');
+    const tierOpts = Object.keys(TIER_LABELS).map(k =>
+      `<option value="${k}" ${it.tier===k?'selected':''}>${TIER_LABELS[k]} (${k})</option>`).join('');
+    return `
+    <div class="item ${isUnknown?'unknown':''}">
+      <div class="item-top">
+        <select onchange="setKey(${i}, this.value)">
+          ${isUnknown ? '<option value="" selected disabled>― 항목을 선택하세요 ―</option>' : ''}
+          ${optionsHTML(it.key)}
+        </select>
+        <button class="del-btn" onclick="delItem(${i})" title="삭제">×</button>
+      </div>
+      ${isService ? `
+      <div class="svc-grid">
+        <div class="svc-field">
+          <span class="svc-lbl">업무 구분</span>
+          <select onchange="setField(${i},'work',this.value)">
+            <option value="" ${!it.work?'selected':''} disabled>구분 선택</option>
+            ${workOpts}
+          </select>
+        </div>
+        <div class="svc-field">
+          <span class="svc-lbl">등급 (Tier)</span>
+          <select onchange="setField(${i},'tier',this.value)">
+            <option value="" ${!it.tier?'selected':''} disabled>등급 선택</option>
+            ${tierOpts}
+          </select>
+        </div>
+      </div>` : ''}
+      <div class="item-grid">
+        <input placeholder="영문 항목명 (인보이스 그대로)" value="${esc(it.en)}" onchange="setField(${i},'en',this.value)">
+        <input placeholder="대상자" value="${esc(it.who)}" onchange="setField(${i},'who',this.value)">
+        <input placeholder="금액 (RM)" value="${esc(it.amt)}" onchange="setField(${i},'amt',this.value)">
+      </div>
+      ${isOther ? `<input style="margin-top:8px;font-size:12.5px;padding:7px 9px;width:100%;" placeholder="이 항목의 국문 설명을 직접 입력하세요" value="${esc(it.customDesc||'')}" onchange="setField(${i},'customDesc',this.value)">` : ''}
+      <div class="item-note">⚠ 인식되지 않은 항목입니다. 위 목록에서 알맞은 항목을 선택해 주세요.</div>
+    </div>`;
+  }).join('');
+  renderDoc();
+}
+
+function esc(s){ return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function setKey(i, val){ items[i].key = val; renderItems(); }
+function setField(i, f, val){
+  items[i][f] = val;
+  if(f === 'en'){
+    const g = guessKey(val);
+    if(g && items[i].key === null) items[i].key = g;
+  }
+  renderItems();
+}
+function addItem(){ items.push({ key:null, en:'', who:'', amt:'', note:'' }); renderItems(); }
+function delItem(i){ items.splice(i,1); renderItems(); }
+
+function resetAll(){
+  if(!confirm('모든 입력을 초기화할까요?')) return;
+  items = SAMPLE.map(s => ({...s}));
+  document.getElementById('invNo').value='';
+  document.getElementById('billTo').value='';
+  document.getElementById('invDate').value='';
+  document.getElementById('dueDate').value='';
+  renderItems();
+}
+
+function parseAmt(s){ return parseFloat((s||'0').replace(/,/g,'')) || 0; }
+function fmt(n){ return n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function renderDoc(){
+  const get = id => document.getElementById(id).value;
+  const valid = items.filter(it => it.key && it.key!=='' );
+  const total = items.reduce((s,it)=> s + parseAmt(it.amt), 0);
+
+  const rows = valid.map((it,idx) => {
+    const g = GLOSSARY.find(x=>x.key===it.key) || {};
+    let koName = g.ko || '';
+    let desc = it.key==='other' ? (it.customDesc||'') : g.desc;
+    if(it.key === 'service_fee'){
+      const work = WORK_LABELS[it.work] || '';   // 신규 신청 / 갱신
+      const tierEn = it.tier || '';              // SILVER 등 (영문 등급 표기 유지)
+      // 예) U1 서비스 수수료 (MM2H SILVER 신규 신청 대행)
+      const parts = ['MM2H', tierEn, work, '대행'].filter(Boolean).join(' ');
+      koName = `U1 서비스 수수료 (${parts})`;
+    }
+    return `
+    <tr>
+      <td style="width:24px;color:var(--ink-faint)">${idx+1}</td>
+      <td>
+        <div class="item-name">${esc(koName)}</div>
+        ${it.who ? `<div class="item-desc">· 대상: ${esc(it.who)}</div>`:''}
+        ${it.note ? `<div class="item-desc">· 산정: ${esc(it.note)}</div>`:''}
+        <div class="item-desc">${esc(desc)}</div>
+        <div class="item-en">원문: ${esc(it.en||g.en||'')}</div>
+      </td>
+      <td class="r" style="white-space:nowrap;font-weight:600">RM ${fmt(parseAmt(it.amt))}</td>
+    </tr>`;
+  }).join('');
+
+  const doc = document.getElementById('doc');
+
+  if(valid.length === 0){
+    doc.innerHTML = `<div class="empty-hint"><div class="ic">📋</div>항목을 입력하면<br>국문 안내문이 여기 표시됩니다.</div>`;
+    return;
+  }
+
+  doc.innerHTML = `
+    <div class="doc-head">
+      <div class="co">
+        <div class="co-mark">U1</div>
+        <div>
+          <h3>U1 INTERNATIONAL (MM2H) SDN. BHD.</h3>
+          <p>C-L07-01, Level 7, KL Trillion, No.338 Jalan Tun Razak, 50400 Kuala Lumpur</p>
+          <p>Tel +60 3-2725 9210 · u1hrdept@gmail.com · www.u1int.com</p>
+        </div>
+      </div>
+      <div class="doc-title">
+        <div class="big">청구 안내서</div>
+        <div class="sub">INVOICE GUIDE (KR)</div>
+      </div>
+    </div>
+
+    <div class="doc-meta">
+      <div><span class="k">인보이스 번호</span><span class="v">${esc(get('invNo'))||'-'}</span></div>
+      <div><span class="k">고객명</span><span class="v">${esc(get('billTo'))||'-'}</span></div>
+      <div><span class="k">발행일</span><span class="v">${esc(get('invDate'))||'-'}</span></div>
+      <div><span class="k">납부 기한</span><span class="v">${esc(get('dueDate'))||'-'}</span></div>
+    </div>
+
+    <p class="greet">
+      <b>${esc(get('billTo'))||'고객'}</b> 님, 안녕하십니까. U1 International을 이용해 주셔서 감사합니다.<br>
+      본 안내서는 함께 보내드린 <b>영문 인보이스(공식 청구서)</b>의 내용을 한국어로 풀어 설명드리기 위한 참고 자료입니다.
+      실제 납부 및 회계 처리는 <b>영문 인보이스를 기준</b>으로 진행됩니다.
+    </p>
+
+    <div class="doc-section-title">청구 항목 안내</div>
+    <table class="doc-table">
+      <thead><tr><th></th><th>항목 및 설명</th><th class="r">금액</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="total-row">
+      <span class="lbl">합계 (TOTAL)</span>
+      <span class="amt">RM ${fmt(total)}</span>
+    </div>
+
+    <div class="pay-box">
+      <div class="pt">💳 입금 안내</div>
+      <div class="pay-grid">
+        <span class="pk">은행</span><span class="pv">${esc(get('bankName'))}</span>
+        <span class="pk">예금주</span><span class="pv">${esc(get('acctName'))}</span>
+        <span class="pk">계좌 (MYR)</span><span class="pv">${esc(get('acctMYR'))}</span>
+        <span class="pk">계좌 (USD)</span><span class="pv">${esc(get('acctUSD'))}</span>
+        <span class="pk">SWIFT</span><span class="pv">${esc(get('swift'))}</span>
+      </div>
+    </div>
+
+    <div class="doc-foot">
+      · 본 안내서는 고객 편의를 위한 <b>국문 참고 자료</b>이며, 법적·회계상 효력을 갖는 공식 청구서는 함께 송부된 영문 인보이스입니다.<br>
+      · 항목·금액에 대한 문의는 담당자에게 연락 주시면 안내해 드리겠습니다.<br>
+      <div class="disc">이 문서는 자동 생성되었습니다. · This is a Korean-language guide accompanying the official English invoice.</div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   PDF 자동 읽기 (오프라인 처리)
+   PDF에서 텍스트 추출 → 줄 단위로 사전 매칭 → 자동 기입
+   ============================================================ */
+if(window['pdfjsLib']){
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+function setStatus(type, html){
+  const el = document.getElementById('dzStatus');
+  el.className = 'dz-status show ' + type;
+  el.innerHTML = html;
+}
+
+// 드래그앤드롭
+const dz = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(e =>
+  dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('dragover'); }));
+['dragleave','drop'].forEach(e =>
+  dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('dragover'); }));
+dz.addEventListener('drop', ev => {
+  const f = ev.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+
+async function handleFile(file){
+  if(!file) return;
+  if(file.type !== 'application/pdf'){
+    setStatus('error', '⚠ PDF 파일만 업로드할 수 있습니다.');
+    return;
+  }
+  if(!window['pdfjsLib']){
+    setStatus('error', '⚠ PDF 읽기 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하거나 항목을 직접 입력해 주세요.');
+    return;
+  }
+  setStatus('loading', '<span class="dz-spin"></span><b>'+file.name+'</b> 읽는 중...');
+  try {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let lines = [];
+    for(let p=1; p<=pdf.numPages; p++){
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      lines = lines.concat(groupLines(tc.items));
+    }
+    const result = parseInvoice(lines);
+    applyParsed(result);
+    const n = result.items.length;
+    const unk = result.items.filter(it=>it.key===null).length;
+    let msg = `✅ 자동 입력 완료 — 항목 <b>${n}건</b> 인식`;
+    if(unk>0) msg += `, 그중 <b>${unk}건</b>은 항목 선택이 필요합니다 (노란색 표시).`;
+    msg += `<br><span style="font-size:11px;color:var(--ink-faint)">※ 모든 숫자·항목을 영문 원본과 한 번 대조해 주세요.</span>`;
+    setStatus('success', msg);
+  } catch(err){
+    console.error(err);
+    setStatus('error', '⚠ PDF를 읽지 못했습니다. 스캔본(이미지)이거나 형식이 다를 수 있습니다. 항목을 직접 입력해 주세요.');
+  }
+}
+
+/* PDF 텍스트 조각을 Y좌표 기준으로 줄 단위로 묶기 */
+function groupLines(items){
+  const rows = {};
+  items.forEach(it => {
+    if(!it.str || !it.str.trim()) return;
+    const y = Math.round(it.transform[5]);
+    let key = Object.keys(rows).find(k => Math.abs(k - y) <= 3);
+    if(key === undefined) key = y;
+    (rows[key] = rows[key] || []).push({ x: it.transform[4], s: it.str });
+  });
+  return Object.keys(rows)
+    .sort((a,b)=> b-a)
+    .map(k => rows[k].sort((a,b)=>a.x-b.x).map(o=>o.s).join(' ').replace(/\s+/g,' ').trim());
+}
+
+/* 줄 배열에서 인보이스 정보 파싱 */
+function parseInvoice(lines){
+  const out = { meta:{}, items:[], bank:{} };
+  const joined = lines.join('\n');
+
+  // 메타 정보
+  const mNo   = joined.match(/IV[-\s]?\d{3,}/i);
+  const mDate = joined.match(/Date\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/i)
+             || joined.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+  const mDue  = joined.match(/Due\s*Date\s*[:\-]?\s*(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/i);
+  if(mNo)   out.meta.invNo  = mNo[0].toUpperCase().replace(/\s/g,'');
+  if(mDate) out.meta.date   = mDate[1] || mDate[0];
+  if(mDue)  out.meta.due    = mDue[1];
+
+  // Bill To
+  const biIdx = lines.findIndex(l => /bill\s*to/i.test(l));
+  if(biIdx >= 0){
+    let cand = lines[biIdx].replace(/.*bill\s*to\s*/i,'').trim();
+    if(!cand && lines[biIdx+1]) cand = lines[biIdx+1].trim();
+    if(cand) out.meta.billTo = cand;
+  }
+
+  // 은행 정보
+  const mBank = joined.match(/Bank\s*[:\-]?\s*([A-Z][A-Z\s&]+(?:BERHAD|BHD|BANK)?)/i);
+  const mMYR  = joined.match(/MYR\s*[)\s:]*([\d\s]{8,})/i);
+  const mUSD  = joined.match(/USD\s*[)\s:]*([\d\s]{8,})/i);
+  const mSwift= joined.match(/Swift\s*code\s*[:\-]?\s*([A-Z0-9]{6,11})/i);
+  if(mBank)  out.bank.name = mBank[1].trim();
+  if(mMYR)   out.bank.myr  = mMYR[1].trim();
+  if(mUSD)   out.bank.usd  = mUSD[1].trim();
+  if(mSwift) out.bank.swift= mSwift[1].trim();
+
+  // 청구 항목: 사전 키워드가 들어간 줄을 찾고 금액 추출
+  // 금액 패턴: 1,234.56 형태 중 가장 마지막 큰 값을 Amt로 추정
+  const amtRe = /\d{1,3}(?:,\d{3})*\.\d{2}/g;
+  lines.forEach(line => {
+    const key = guessKey(line);
+    if(!key) return;
+    // 같은 줄 또는 보조 정보에서 금액 추출
+    const amts = line.match(amtRe);
+    let amt = '';
+    if(amts && amts.length){
+      // U/Price와 Amt가 같이 있는 경우가 많음 → 큰 값을 Amt로
+      amt = amts.map(a=>parseFloat(a.replace(/,/g,'')))
+                .reduce((m,v)=> v>=m.v?{v,raw:null}:m, {v:-1}).v;
+      // 원본 포맷 유지 위해 다시 포맷
+      amt = amt>=0 ? amt.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';
+    }
+    // 대상자(영문 대문자 이름) 추출 시도
+    const who = extractName(line);
+    const item = { key, en: cleanEn(line), who, amt, note:'' };
+
+    // U1 서비스 수수료: 업무구분(NEW/REFRESH) + Tier 자동 인식
+    if(key === 'service_fee'){
+      const up = line.toUpperCase();
+      if(/\bREFRESH\b|\bRENEW/.test(up)) item.work = 'REFRESH';
+      else if(/\bNEW\b/.test(up)) item.work = 'NEW';
+      if(/\bPLATINUM\b/.test(up)) item.tier = 'PLATINUM';
+      else if(/\bGOLD\b/.test(up)) item.tier = 'GOLD';
+      else if(/\bSILVER\b/.test(up)) item.tier = 'SILVER';
+      else if(/\bSEZ\b/.test(up)) item.tier = 'SEZ';
+    }
+    out.items.push(item);
+  });
+
+  return out;
+}
+
+function cleanEn(line){
+  // 앞쪽 번호와 뒤쪽 숫자 덩어리 제거해 항목명만 남기기
+  return line
+    .replace(/^\s*\d+\s+/, '')
+    .replace(/\s+\d[\d,. ]*$/,'')
+    .replace(/\s+RM[\d,. ]+/gi,'')
+    .trim()
+    .slice(0, 80);
+}
+
+function extractName(line){
+  // "FOR XXX YYY" 또는 콜론 뒤 이름 패턴
+  const m = line.match(/FOR\s+([A-Z][A-Z\s]{2,30}?)(?=\s*[:(]|\s*\d|$)/);
+  if(m) return m[1].trim().replace(/\s+/g,' ');
+  return '';
+}
+
+function applyParsed(r){
+  const set = (id,v)=>{ if(v) document.getElementById(id).value = v; };
+  set('invNo', r.meta.invNo);
+  set('billTo', r.meta.billTo);
+  set('invDate', r.meta.date);
+  set('dueDate', r.meta.due);
+  if(r.bank.name)  set('bankName', r.bank.name);
+  if(r.bank.myr)   set('acctMYR', r.bank.myr);
+  if(r.bank.usd)   set('acctUSD', r.bank.usd);
+  if(r.bank.swift) set('swift', r.bank.swift);
+  if(r.items.length){
+    items = r.items.map(it => ({...it}));
+    renderItems();
+  } else {
+    renderDoc();
+  }
+}
+
+// init
+items = SAMPLE.map(s => ({...s}));
+['invNo','billTo','invDate','dueDate','bankName','acctName','acctMYR','acctUSD','swift']
+  .forEach(id => document.getElementById(id).addEventListener('input', renderDoc));
+renderItems();
+</script>
+</body>
+</html>
