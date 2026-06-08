@@ -174,6 +174,25 @@
   .btn-ghost { background: #fff; color: var(--ink-soft); border: 1px solid var(--line); flex: 0 0 auto; padding: 13px 18px; }
   .btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
 
+  .right-col { display: flex; flex-direction: column; gap: 28px; }
+
+  /* Original invoice viewer */
+  .orig-view { min-height: 120px; }
+  .orig-empty {
+    text-align: center; padding: 48px 20px; color: var(--ink-faint);
+    font-size: 13px; border: 1.5px dashed var(--line); border-radius: 8px;
+  }
+  .orig-filename {
+    font-size: 12px; font-weight: 600; color: var(--ink-soft);
+    margin-bottom: 10px; word-break: break-all;
+  }
+  .orig-embed {
+    width: 100%; height: 720px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--paper-warm);
+  }
+  .orig-fallback { font-size: 11px; color: var(--ink-faint); margin-top: 8px; text-align: center; }
+  .orig-fallback a { color: var(--accent); }
+
   /* Preview */
   #previewPanel .panel-body { padding: 0; background: var(--paper-warm); }
   .preview-scroll { max-height: 760px; overflow-y: auto; padding: 22px; }
@@ -437,22 +456,39 @@
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="resetAll()" data-i18n="btnReset">초기화</button>
-          <button class="btn btn-primary" onclick="window.print()" data-i18n="btnPrint">📄 PDF로 저장 / 인쇄</button>
+          <button class="btn btn-primary" onclick="doPrint()" data-i18n="btnPrint">📄 PDF로 저장 / 인쇄</button>
         </div>
 
       </div>
     </div>
 
-    <!-- PREVIEW -->
-    <div class="panel" id="previewPanel">
-      <div class="panel-head no-print">
-        <span class="step">2</span>
-        <h2 data-i18n="panelPreview">국문 안내문 미리보기</h2>
-        <span class="hint" data-i18n="panelPreviewHint">입력하면 실시간 반영</span>
+    <!-- RIGHT COLUMN: preview + original -->
+    <div class="right-col">
+      <!-- PREVIEW -->
+      <div class="panel" id="previewPanel">
+        <div class="panel-head no-print">
+          <span class="step">2</span>
+          <h2 data-i18n="panelPreview">국문 안내문 미리보기</h2>
+          <span class="hint" data-i18n="panelPreviewHint">입력하면 실시간 반영</span>
+        </div>
+        <div class="panel-body">
+          <div class="preview-scroll">
+            <div class="doc" id="doc"></div>
+          </div>
+        </div>
       </div>
-      <div class="panel-body">
-        <div class="preview-scroll">
-          <div class="doc" id="doc"></div>
+
+      <!-- ORIGINAL INVOICE -->
+      <div class="panel no-print" id="originalPanel">
+        <div class="panel-head">
+          <span class="step">3</span>
+          <h2 data-i18n="panelOriginal">원본 인보이스 보기</h2>
+          <span class="hint" data-i18n="panelOriginalHint">업로드한 원본과 대조</span>
+        </div>
+        <div class="panel-body">
+          <div id="originalView" class="orig-view">
+            <div class="orig-empty" data-i18n="origEmpty">PDF를 업로드하면 여기에 원본 인보이스가 표시됩니다.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -648,6 +684,8 @@ const I18N = {
     lblAcctUSD: "계좌번호 (USD)", lblSwift: "SWIFT 코드",
     btnReset: "초기화", btnPrint: "📄 PDF로 저장 / 인쇄",
     panelPreview: "안내문 미리보기", panelPreviewHint: "입력하면 실시간 반영",
+    panelOriginal: "원본 인보이스 보기", panelOriginalHint: "업로드한 원본과 대조",
+    origEmpty: "PDF를 업로드하면 여기에 원본 인보이스가 표시됩니다.",
     // line item ui
     selectPrompt: "― 항목을 선택하세요 ―",
     phItemEn: "영문 항목명 (예: VISA FEE FOR ...)",
@@ -696,6 +734,8 @@ const I18N = {
     lblAcctUSD: "Account No. (USD)", lblSwift: "SWIFT Code",
     btnReset: "Reset", btnPrint: "📄 Save as PDF / Print",
     panelPreview: "Guide Preview", panelPreviewHint: "Updates as you type",
+    panelOriginal: "Original Invoice", panelOriginalHint: "Compare with the upload",
+    origEmpty: "Upload a PDF to view the original invoice here.",
     selectPrompt: "― Select an item ―",
     phItemEn: "Invoice line text (e.g. VISA FEE FOR ...)",
     phWho: "Person (e.g. HONG GIL DONG)",
@@ -777,6 +817,8 @@ function guessKey(text){
 }
 
 let items = [];
+let uploadedFileName = '';   // 업로드된 원본 인보이스 파일명 (확장자 제외)
+let uploadedPdfUrl = '';     // 원본 PDF 미리보기용 object URL
 
 function optionsHTML(selectedKey){
   return GLOSSARY.map(g => {
@@ -859,11 +901,34 @@ function resetAll(){
   if(st) st.className = 'dz-status';
   const pi = document.getElementById('pdfInput');
   if(pi) pi.value = '';
+  // 원본 보기 및 파일명 초기화
+  uploadedFileName = '';
+  if(uploadedPdfUrl){ URL.revokeObjectURL(uploadedPdfUrl); uploadedPdfUrl = ''; }
+  const ov = document.getElementById('originalView');
+  if(ov) ov.innerHTML = `<div class="orig-empty" data-i18n="origEmpty">${t('origEmpty')}</div>`;
   renderItems();
 }
 
 function parseAmt(s){ return parseFloat((s||'0').replace(/,/g,'')) || 0; }
 function fmt(n){ return n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+/* PDF 저장/인쇄 — 저장 파일명을 "원본파일명 (국문 Invoice)"으로 지정.
+   브라우저는 인쇄 시 document.title을 기본 파일명으로 사용하므로
+   인쇄 직전에 title을 바꿨다가 인쇄 후 복원한다. */
+function doPrint(){
+  const origTitle = document.title;
+  const base = uploadedFileName
+    ? `${uploadedFileName} (국문 Invoice)`
+    : (document.getElementById('invNo').value
+        ? `${document.getElementById('invNo').value} (국문 Invoice)`
+        : '국문 Invoice');
+  document.title = base;
+  const restore = () => { document.title = origTitle; window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  // afterprint 미지원 브라우저 대비 안전 복원
+  setTimeout(restore, 1500);
+}
 
 function renderDoc(){
   const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
@@ -1025,6 +1090,13 @@ async function handleFile(file){
     return;
   }
   setStatus('loading', '<span class="dz-spin"></span><b>'+file.name+'</b> 읽는 중...');
+
+  // 원본 파일명 저장 (확장자 제외) + 원본 PDF 미리보기 표시
+  uploadedFileName = file.name.replace(/\.pdf$/i, '');
+  if(uploadedPdfUrl) URL.revokeObjectURL(uploadedPdfUrl);
+  uploadedPdfUrl = URL.createObjectURL(file);
+  showOriginalPdf(uploadedPdfUrl, file.name);
+
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: buf}).promise;
@@ -1046,6 +1118,18 @@ async function handleFile(file){
     console.error(err);
     setStatus('error', '⚠ PDF를 읽지 못했습니다. 스캔본(이미지)이거나 형식이 다를 수 있습니다. 항목을 직접 입력해 주세요.');
   }
+}
+
+/* 원본 PDF를 '3 원본 인보이스 보기' 패널에 표시 */
+function showOriginalPdf(url, fname){
+  const box = document.getElementById('originalView');
+  if(!box) return;
+  box.innerHTML = `
+    <div class="orig-filename">📄 ${fname}</div>
+    <embed src="${url}#toolbar=1&navpanes=0" type="application/pdf" class="orig-embed" />
+    <div class="orig-fallback">
+      PDF가 보이지 않으면 <a href="${url}" target="_blank" rel="noopener">여기를 클릭</a>해 새 창에서 여세요.
+    </div>`;
 }
 
 /* PDF 텍스트 조각을 Y좌표 기준으로 줄 단위로 묶기 */
