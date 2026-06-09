@@ -108,7 +108,9 @@
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="resetAll()" data-i18n="btnReset">초기화</button>
-          <button class="btn btn-primary" onclick="doPrint()" data-i18n="btnPrint">📄 PDF로 저장 / 인쇄</button>
+          <button class="btn btn-primary" id="printBtn"
+            onclick="(typeof doPrint==='function') ? doPrint() : window.print()"
+            data-i18n="btnPrint">📄 PDF로 저장 / 인쇄</button>
         </div>
 
       </div>

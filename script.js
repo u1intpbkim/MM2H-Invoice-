@@ -414,19 +414,53 @@ function fmt(n){ return n.toLocaleString('en-US',{minimumFractionDigits:2, maxim
 
 /* ============================================================
    PDF 저장/인쇄 (버그 1)
-   - 인쇄 격리는 styles.css @media print 에서 처리.
-   - 여기서는 저장 파일명만 지정하고 window.print() 호출.
+   - 기본 인쇄 격리는 styles.css @media print 에서 처리.
+   - 추가 안전장치: styles.css 가 로드되지 않았거나 캐시 문제로
+     @media print 가 적용되지 않은 경우에도 인쇄가 깨지지 않도록,
+     인쇄 직전에 동일한 인쇄용 스타일을 <style> 로 직접 주입한다.
+     (GitHub Pages 등 호스팅 환경에서 css 경로/대소문자 문제 대비)
    ============================================================ */
+const PRINT_CSS = `
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background:#fff !important; padding:0 !important; margin:0 !important; }
+  body > .wrap > header, .panel.no-print, #originalPanel, .panel-head { display:none !important; }
+  .wrap, .grid, .right-col, #previewPanel, #previewPanel .panel-body {
+    display:block !important; max-width:none !important; width:auto !important;
+    margin:0 !important; padding:0 !important; border:none !important;
+    box-shadow:none !important; background:#fff !important; gap:0 !important;
+  }
+  .preview-scroll { max-height:none !important; overflow:visible !important; padding:0 !important; }
+  .doc { box-shadow:none !important; padding:0 !important; }
+  table.doc-table tr, .total-row, .pay-box, .doc-foot { page-break-inside:avoid; }
+}`;
+
+function ensurePrintStyle(){
+  if(document.getElementById('__printFallback')) return;
+  const s = document.createElement('style');
+  s.id = '__printFallback';
+  s.media = 'print';
+  s.textContent = PRINT_CSS;
+  document.head.appendChild(s);
+}
+
 function doPrint(){
+  ensurePrintStyle();  // 인쇄 스타일 보장
   const origTitle = document.title;
-  const invVal = document.getElementById('invNo').value;
+  const invEl = document.getElementById('invNo');
+  const invVal = invEl ? invEl.value : '';
   const base = uploadedFileName
     ? `${uploadedFileName} (국문 Invoice)`
     : (invVal ? `${invVal} (국문 Invoice)` : '국문 Invoice');
   document.title = base;
   const restore = () => { document.title = origTitle; window.removeEventListener('afterprint', restore); };
   window.addEventListener('afterprint', restore);
-  window.print();
+  try {
+    window.print();
+  } catch(e){
+    console.error('print failed', e);
+    alert('인쇄 대화상자를 열 수 없습니다. 브라우저의 인쇄(Ctrl/Cmd+P)를 직접 사용해 주세요.');
+  }
   setTimeout(restore, 1500);
 }
 
@@ -700,16 +734,39 @@ function parseInvoice(lines){
     }
     const seg = lines.slice(start, end);
 
-    // 항목 블록 만들기: '번호로 시작' → 'NUMTAIL'에서 종료
+    // 항목 시작 판정:
+    //  (1) "1 ..." 처럼 번호로 시작하거나
+    //  (2) 번호 없이도 알려진 항목 키워드로 시작하는 줄
+    //      (PDF에 따라 줄 맨 앞 번호가 떨어져 나가는 경우 대비)
+    const ITEM_START = /^(u1\s*service|service\s*fee|visa\s*fee|participation|insurance|medical|passport|security|stamp|fixed\s*deposit|bank\s*assist|dependant|dependent)/i;
+    const isItemStart = (line) => /^\d+\s+\D/.test(line) || ITEM_START.test(line);
+
+    // 항목 블록 만들기:
+    //  - 시작 줄에서 새 블록 열기
+    //  - NUMTAIL(금액 줄)에서 닫기
+    //  - '다음 항목 시작'처럼 보여도, 현재 블록에 아직 금액 줄이 없으면
+    //    같은 항목의 연속 줄로 간주해 이어붙인다.
+    //    (예: "U1 SERVICE FEE" / "DEPENDENT VISA CANCELLATION FOR ..." 가
+    //     2줄이지만 하나의 항목인 경우 — 둘째 줄을 새 항목으로 끊지 않음)
     const blocks = [];
     let cur = null;
     for(const line of seg){
-      const startsNum = /^\d+\s+\D/.test(line);
-      if(startsNum && !cur) cur = [line];
-      else if(cur) cur.push(line);
-      else continue;
+      const starts = isItemStart(line);
+      // 번호로 시작하는 줄은 명확한 새 항목 신호로 본다.
+      const numbered = /^\d+\s+\D/.test(line);
+      if(cur && (numbered || (starts && cur.some(l=>NUMTAIL.test(l))))){
+        // 직전 블록이 이미 완결(금액 줄 있음)됐거나, 새 줄이 번호로 시작 → 새 항목
+        blocks.push(cur); cur = [line];
+      } else if(starts && !cur){
+        cur = [line];
+      } else if(cur){
+        cur.push(line);
+      } else {
+        continue;
+      }
       if(NUMTAIL.test(line)){ blocks.push(cur); cur = null; }
     }
+    if(cur) blocks.push(cur);  // 마지막 블록 처리
 
     blocks.forEach(blockLines => {
       const numLine = blockLines[blockLines.length - 1];
@@ -723,9 +780,38 @@ function parseInvoice(lines){
         .replace(/\s+/g,' ')
         .trim();
       if(!en) return;
+      // 안전망: 금액도 없고 매우 짧은(라벨성) 잔여 조각은 항목으로 만들지 않음
+      if(!amt && en.replace(/[^A-Za-z]/g,'').length < 6) return;
 
       // 블록 단위 1회 판정 (버그 3)
-      const key = guessKey(en);
+      let key = guessKey(en);
+
+      // ── "U1 Service Fee:" 전용 재분류 (버그: 콜론 뒤 줄바꿈으로 PVIP/티어 누락) ──
+      // guessKey 가 일반(service_general)/MM2H 로 잡았더라도,
+      // 블록 전체 텍스트(en)에서 PVIP·티어 키워드를 끝까지 다시 확인해 교정한다.
+      // 'U1 Service Fee:' 뒤에는 PVIP 또는 VISA 티어(Silver/Gold/Platinum/SEZ/SFZ)가
+      // 다음 줄에 이어지는 경우가 많기 때문.
+      const up0 = en.toUpperCase();
+      const isU1ServiceFee = /U1\s*SERVICE\s*FEE\s*:?/.test(up0) || key === 'service_general';
+      if(isU1ServiceFee){
+        if(/\bPVIP\b/.test(up0)){
+          key = 'service_pvip';
+        } else if(/\b(SILVER|GOLD|PLATINUM|SEZ|SFZ)\b/.test(up0) || /\bMM2H\b/.test(up0)){
+          key = 'service_mm2h';
+        } else if(/\bTEBP\b/.test(up0)){
+          key = 'service_tebp';
+        } else if(/PERMISSION\s+TO\s+STUDY|\bPTS\b/.test(up0)){
+          key = 'service_pts';
+        } else if(/VISA\s+CANCELLATION/.test(up0)){
+          key = 'service_cancellation_check';  // 아래에서 visa_cancellation 로 매핑
+        } else if(/FIXED\s+DEPOSIT\s+WITHDRAWAL|\bFD\s+WITHDRAWAL\b/.test(up0)){
+          key = 'fd_withdrawal';
+        } else if(/BANK\s+ASSIST/.test(up0)){
+          key = 'bank_assist';
+        }
+      }
+      if(key === 'service_cancellation_check') key = 'visa_cancellation';
+
       const who = extractName(en);
 
       const item = { key: key || null, en, who, amt, note:'' };
@@ -737,7 +823,7 @@ function parseInvoice(lines){
         if(/\bPLATINUM\b/.test(up)) item.tier = 'PLATINUM';
         else if(/\bGOLD\b/.test(up)) item.tier = 'GOLD';
         else if(/\bSILVER\b/.test(up)) item.tier = 'SILVER';
-        else if(/\bSEZ\b/.test(up)) item.tier = 'SEZ';
+        else if(/\bSEZ\b|\bSFZ\b/.test(up)) item.tier = 'SEZ';
       }
       out.items.push(item);
     });
